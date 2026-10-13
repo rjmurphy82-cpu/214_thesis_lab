@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Thesis Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style id="tl-style">
+/* Layout: matches the D214 Investing app shell. Dark navy ground, sticky header over a ticker tape, red-topped cards; district red marks action, green/red only for gains and verdicts. Deliberately single-theme (dark). */
+:root{
+  --bg:#0f1720; --surface:#141e29; --surface-2:#1a2531; --ink:#e6ebf1; --white:#ffffff; --muted:#aab4c3; --dim:#8a97a8; --line:#223041; --line-3:#34455a;
+  --accent:#c8102e; --accent-ink:#ffffff; --accent-soft:#2a1720; --link:#ef5b70;
+  --gold:#e0b45a; --gold-soft:#221d14; --cream:#e8d7b0;
+  --good:#45c08a; --good-soft:#14261e; --bad:#f0606f; --bad-soft:#2d161b; --warn:#e0b45a; --warn-soft:#221d14;
+  --tape:#0b1219; --tape-ink:#e6ebf1; --rule:#3a1a24;
+  --c-stock:#ef5b70; --c-bond:#6b8fbf; --c-mm:#c9a34e; --c-cash:#4a5768;
+  --f-display:"Playfair Display",Georgia,"Times New Roman",serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:6px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;padding-inline:clamp(16px,3vw,40px);padding-block:0 48px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:900;color:var(--white)}
+h3{font-size:1.3rem;font-weight:700;color:var(--white)}
+p{margin:0}
+a{color:var(--link)}
+.wrap{max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+
+/* Masthead */
+.mast{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin-inline:calc(-1 * clamp(16px,3vw,40px));background:var(--bg);border-bottom:1px solid var(--rule)}
+.mast-in{max-width:1320px;margin:0 auto;padding:14px clamp(16px,3vw,40px) 0;display:flex;flex-direction:column;gap:10px}
+.mast-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-size:1.9rem;font-weight:900;color:var(--white);white-space:nowrap}.brand h1 b{color:var(--accent)}.brand h1 small{font-family:var(--f-body);font-size:.8rem;letter-spacing:.3em;font-weight:700;color:var(--muted)}
+.brand .tick{font-family:var(--f-mono);font-size:.75rem;color:var(--cream);border:1px solid var(--line-3);padding:2px 8px;border-radius:999px}
+.who{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ttape{background:var(--tape);border-top:1px solid var(--rule);overflow:hidden}
+.ttape-in{max-width:1320px;margin:0 auto;padding-inline:clamp(16px,3vw,40px);display:flex;gap:30px;height:42px;align-items:center;white-space:nowrap;overflow-x:auto;scrollbar-width:none;font-family:var(--f-mono);font-size:.85rem}
+.ttape-in::-webkit-scrollbar{display:none}
+.ttape .s{color:var(--white);font-weight:500}.ttape .p{color:var(--muted)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:0;background:none;padding:10px 14px 12px;font-family:var(--f-body);font-weight:500;font-size:1.02rem;color:var(--muted);border-bottom:3px solid transparent}.tab:hover{color:var(--white)}
+.tab[aria-selected="true"]{color:var(--white);border-bottom-color:var(--accent)}
+.tab .badge{font-family:var(--f-mono);font-size:.7rem;background:var(--gold-soft);color:var(--gold);border-radius:10px;padding:0 6px;margin-left:4px}
+
+/* Tape */
+.tape{background:var(--surface);color:var(--tape-ink);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:var(--r);padding:20px 22px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.tape .round{font-family:var(--f-body);font-weight:600;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--link)}
+.tape .head{font-family:var(--f-display);font-weight:900;font-size:clamp(1.8rem,4.5vw,3rem);line-height:1.05;color:var(--white)}
+.tape .story{max-width:72ch;color:var(--muted);font-size:1.02rem}
+.macro{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.mstat{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line-3);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.mstat .v{font-family:var(--f-mono);font-size:1.4rem;font-weight:500;color:var(--white)}
+.mstat .d{font-family:var(--f-mono);font-size:.75rem}
+.up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--muted)}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+.grid-even{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+@media (max-width:880px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.temptation{border:1px solid #4a3c1f;background:var(--gold-soft);color:var(--cream);border-radius:var(--r);padding:12px 14px;display:flex;gap:12px;align-items:flex-start}
+.temptation .lab{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);white-space:nowrap;padding-top:2px}
+.note{background:var(--surface-2);color:var(--muted);border-radius:var(--r);padding:10px 12px;font-size:.9rem}
+.alert{border-left:3px solid var(--bad);background:var(--bad-soft);padding:8px 12px;border-radius:0 var(--r) var(--r) 0;font-size:.9rem}
+.okline{border-left:3px solid var(--good);background:var(--good-soft);padding:8px 12px;border-radius:0 var(--r) var(--r) 0;font-size:.9rem}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;margin-inline:-4px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{font-family:var(--f-mono);font-weight:500;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid #1c2733;text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+td.name{font-family:var(--f-body);white-space:normal;min-width:150px}
+td.name b{font-family:var(--f-mono);font-weight:500;color:var(--white)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:baseline}
+td.name small{display:block;color:var(--muted);font-size:.78rem}
+tr.sel td{background:var(--accent-soft)}
+tbody tr{cursor:default}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--surface-2)}
+.newsline{font-family:var(--f-body);font-size:.8rem;color:var(--muted);white-space:normal;text-align:left;padding-top:0}
+
+/* Stamps */
+.stamp{display:inline-flex;align-items:center;gap:4px;font-family:var(--f-body);font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:2px 8px;border:1px solid currentColor;border-radius:3px;white-space:nowrap}
+.s-consistent,.s-credit{color:var(--good);background:var(--good-soft)}
+.s-partial{color:var(--warn);background:var(--warn-soft)}
+.s-violation{color:var(--bad);background:var(--bad-soft)}
+.s-hidden{color:var(--muted);background:var(--surface-2)}
+.chip{display:inline-block;font-family:var(--f-mono);font-size:.68rem;padding:1px 6px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.gold{background:var(--gold-soft);color:var(--gold)}
+
+/* Forms */
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:500}
+.lab-s{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+input[type=text],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:76px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1 1 140px;min-width:0}
+.btn{border:1px solid var(--line-3);background:transparent;border-radius:var(--r);padding:9px 16px;font-weight:600;font-size:.92rem;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{background:#a90d27;border-color:#a90d27}
+.btn.gold{background:var(--gold);color:#1a1408;border-color:var(--gold)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.seg{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:var(--bg)}
+.seg button{border:0;background:transparent;padding:6px 18px;font-weight:600;border-radius:999px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--white)}
+.seg button.sell[aria-pressed="true"]{background:#1b3a2d;color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+.emo{display:flex;gap:6px}
+.emo button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:6px 0;font-family:var(--f-mono);font-weight:600}
+.emo button[aria-pressed="true"]{background:var(--gold);color:#1a1408;border-color:var(--gold)}
+.preview{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+
+/* Thesis */
+.thesis-card{border:1px solid var(--line);border-top:4px solid var(--tc,var(--accent));border-radius:var(--r);padding:18px;background:var(--bg);display:flex;flex-direction:column;gap:10px;text-align:left;width:100%}
+button.thesis-card:hover{background:var(--surface-2)}
+.thesis-card[aria-pressed="true"]{background:var(--surface-2);box-shadow:0 0 0 2px var(--tc,var(--accent)) inset}
+.thesis-card .tname{font-family:var(--f-display);font-size:1.5rem;font-weight:900;color:var(--tc,var(--white))}
+.thesis-card .fit{font-family:var(--f-mono);font-size:.72rem;color:var(--gold)}
+.rules{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.rules li{display:grid;grid-template-columns:40px 1fr;gap:8px;font-size:.9rem;align-items:baseline}
+.rules .rid{font-family:var(--f-mono);font-weight:600;font-size:.78rem;color:var(--good)}
+.rules li.k-sell .rid{color:var(--bad)} .rules li.k-risk .rid{color:var(--gold)} .rules li.k-hold .rid,.rules li.k-cash .rid{color:var(--muted)}
+.charter{border:1px solid var(--line);border-top:4px solid var(--tc,var(--accent));border-radius:var(--r);padding:24px 26px;display:flex;flex-direction:column;gap:14px;background:var(--surface)}
+.charter blockquote{margin:0;font-family:var(--f-display);font-size:1.45rem;font-weight:700;line-height:1.3;color:var(--white);border-left:3px solid var(--tc,var(--gold));padding-left:14px}
+.quiz-q{display:flex;flex-direction:column;gap:8px}
+.quiz-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.quiz-opts button{border:1px solid var(--line-3);background:var(--bg);border-radius:999px;padding:10px 18px;text-align:left;font-weight:500}
+.quiz-opts button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--white)}
+
+/* Report */
+.score-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.big{display:flex;flex-direction:column;gap:4px;padding:20px 22px;border:1px solid var(--line);border-top:4px solid var(--line-3);border-radius:var(--r);background:var(--surface)}
+.big .v{font-family:var(--f-mono);font-size:2.2rem;font-weight:500;line-height:1.1;color:var(--white)}
+.big.lead{border-top-color:var(--accent)}
+.big.lead .v{font-family:var(--f-display);font-weight:900;color:var(--white);font-size:3.4rem}
+.quad{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:.82rem}
+.quad .c{border:1px solid var(--line);border-radius:4px;padding:10px;min-height:64px;background:var(--surface)}
+.quad .c.on{border:1px solid var(--accent);border-top:4px solid var(--accent);background:var(--accent-soft)}
+.quad .ax{font-family:var(--f-mono);font-size:.68rem;color:var(--muted);display:flex;align-items:center;justify-content:center;text-transform:uppercase;letter-spacing:.06em;text-align:center}
+.audit{display:flex;flex-direction:column}
+.audit-r{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:8px}
+.item{display:grid;grid-template-columns:112px minmax(0,1fr) 48px;gap:10px;align-items:start;font-size:.9rem}
+.item .sc{font-family:var(--f-mono);font-weight:600;text-align:right}
+.item ul{margin:4px 0 0;padding-left:18px;color:var(--muted);font-size:.84rem}
+@media (max-width:560px){.item{grid-template-columns:1fr 48px}.item .stampcell{grid-column:1/-1}}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+
+/* Teacher */
+.ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.roundpips{display:flex;gap:4px;flex-wrap:wrap}
+.pip{width:30px;height:30px;border-radius:4px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:.8rem;background:var(--surface)}
+.pip.done{background:var(--surface-2);color:var(--muted)}
+.pip.now{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.edit-grid input{padding:4px 6px;font-family:var(--f-mono);font-size:.8rem;width:72px}
+.edit-grid input.wide{width:220px}
+.edit-grid td{padding:4px}
+.rtabs{display:flex;gap:4px;flex-wrap:wrap}
+.rtabs button{border:1px solid var(--line-3);background:transparent;border-radius:999px;padding:6px 16px;font-weight:600;font-size:.88rem;color:var(--muted)}
+.rtabs button[aria-pressed="true"]{background:var(--accent);color:var(--white);border-color:var(--accent)}
+.confirm{border:1.5px solid var(--bad);background:var(--bad-soft);border-radius:var(--r);padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--surface-2);color:var(--white);border:1px solid var(--line-3);border-top:3px solid var(--accent);padding:10px 16px;border-radius:4px;font-size:.9rem;z-index:50;max-width:calc(100% - 32px)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.hr{height:1px;background:var(--line)}
+.donutwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.donut{position:relative;width:120px;height:120px;border-radius:50%;flex-shrink:0}
+.donut .hole{position:absolute;inset:22px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.mix{display:flex;flex-direction:column;gap:6px;flex:1;min-width:150px;font-size:.88rem}
+.mix div{display:flex;align-items:center;gap:8px}
+.mix .num{margin-left:auto;color:var(--white)}
+@media (prefers-reduced-motion:no-preference){.tape .head{animation:slide .5s ease-out}@keyframes slide{from{transform:translateY(4px);opacity:.6}to{transform:none;opacity:1}}.ttape .chg{transition:color .3s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="mast"><div class="mast-in" id="mast"></div><div class="ttape" aria-label="Ticker"><div class="ttape-in" id="ttape"></div></div></header>
+  <main id="app" class="stack" aria-live="polite"><div class="empty">Opening the trading floor…</div></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script type="application/json" id="tl-config">null</script><script id="tl-app">
+(function(){
+"use strict";
+const FONT_URL="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
+const MARKUP='\n<div class="wrap">\n  <header class="mast"><div class="mast-in" id="mast"></div><div class="ttape" aria-label="Ticker"><div class="ttape-in" id="ttape"></div></div></header>\n  <main id="app" class="stack" aria-live="polite"><div class="empty">Opening the trading floor…</div></main>\n</div>\n<div id="toast" class="toast" hidden></div>\n';
+
+/* ============================================================
+   SAMPLE YEAR (template the teacher can edit or replace)
+   ============================================================ */
+const ASSETS = [
+  {t:"NOVA",name:"Novaline Robotics",sector:"Technology",type:"stock",beta:1.6},
+  {t:"BRKL",name:"Brookline Grocers",sector:"Consumer Staples",type:"stock",beta:0.5},
+  {t:"HLXT",name:"Helix Therapeutics",sector:"Healthcare",type:"stock",beta:1.4},
+  {t:"IRNW",name:"Ironworks Industrial",sector:"Industrials",type:"stock",beta:1.2},
+  {t:"SUNR",name:"Sunridge Utilities",sector:"Utilities",type:"stock",beta:0.4},
+  {t:"PIXL",name:"PixelPop Social",sector:"Communication",type:"stock",beta:2.3},
+  {t:"CRST",name:"Crestview Bank",sector:"Financials",type:"stock",beta:1.1},
+  {t:"TRFL",name:"Terrafuel Energy",sector:"Energy",type:"stock",beta:1.0},
+  {t:"TRSY",name:"10-Year Treasury Fund",sector:"Government Bonds",type:"bond",beta:0.1},
+  {t:"CORP",name:"Bluechip Corporate Bond Fund",sector:"Corporate Bonds",type:"bond",beta:0.3},
+  {t:"MMKT",name:"Money Market Fund",sector:"Cash",type:"mm",beta:0}
+];
+// p, pe, g (rev growth %), m (net margin %), fcf ($M), de, y (yield %), po (payout %)
+const s=(p,pe,g,m,fcf,de,y,po,x)=>Object.assign({p,pe,g,m,fcf,de,y,po},x||{});
+const f=(p,y,x)=>Object.assign({p,y},x||{});
+const D = {
+ NOVA:[s(120,48,34,11,210,.3,0,0,{news:"Warehouse robot orders up 34% from last year."}),s(132,50,36,12,240,.3,0,0),s(90,33,35,12,235,.3,0,0,{news:"Shares fall 32% in the selloff. Order backlog unchanged."}),s(112,38,38,14,300,.3,0,0,{news:"Crushes earnings: revenue +38%, margins widen."}),s(108,36,31,14,290,.3,0,0),s(94,34,19,12,220,.3,0,0,{news:"Revenue growth slows to 19% as customers delay orders."}),s(118,44,11,11,200,.3,0,0,{news:"Stock rallies 26% on rate-cut hopes, but revenue growth slows again to 11%."}),s(121,46,10,10,190,.3,0,0)],
+ BRKL:[s(52,14,4,4,180,.6,3.6,55),s(51,13.8,4,4,175,.6,3.7,56),s(47,12.8,5,4,180,.6,4.0,55),s(50,13.2,5,4.2,190,.6,3.8,54),s(49,13.4,4,3.6,160,.6,3.9,60,{news:"Fuel and shipping costs squeeze margins."}),s(53,14.5,4,3.7,165,.6,3.6,59),s(55,15,4,3.9,170,.6,3.5,58),s(56,15.2,5,4,178,.6,3.4,57)],
+ HLXT:[s(38,null,45,-8,-60,.8,0,0,{news:"Phase 3 trial results expected mid-year."}),s(41,null,48,-6,-50,.8,0,0),s(27,null,44,-7,-55,.8,0,0),s(30,null,50,-4,-30,.8,0,0,{news:"Trial data due next quarter."}),s(52,95,70,3,20,.8,0,0,{news:"FDA approves Helix's lead drug. Shares +73%. First profitable quarter."}),s(55,70,82,6,60,.7,0,0),s(66,58,85,9,110,.7,0,0),s(70,52,80,11,140,.6,0,0,{news:"Sales of the new drug beat forecasts."})],
+ IRNW:[s(64,11,6,8,140,1.3,2.2,25),s(68,11.5,8,8.5,150,1.3,2.1,25),s(55,9.2,7,8.4,145,1.3,2.6,25,{news:"Falls with the market; factory orders steady."}),s(61,9.6,9,9.5,-40,1.6,2.3,24,{news:"Record net income, but operating cash flow turns negative as unsold inventory piles up. Debt rises to fund it."}),s(58,9.4,5,8.6,-25,1.7,2.4,26),s(49,9.8,-3,7,20,1.7,2.9,28,{news:"Orders fall; revenue shrinks 3%."}),s(57,11.6,-1,7.2,60,1.6,2.5,27),s(60,11.8,2,7.5,90,1.5,2.4,26)],
+ SUNR:[s(72,17,3,12,90,1.4,4.6,78),s(66,15.8,3,12,88,1.4,5.0,78,{news:"Utility stocks slide as bond yields rise."}),s(60,14.4,3,12,90,1.4,5.5,79),s(62,14.6,3,12,92,1.4,5.3,78),s(63,14.8,3,11.8,91,1.4,5.2,79),s(70,16.4,3,12,94,1.4,4.7,78),s(76,17.8,4,12.2,96,1.4,4.4,77),s(78,18.2,4,12.3,97,1.4,4.3,77)],
+ PIXL:[s(14,null,12,-22,-90,2.1,0,0,{news:"User growth slows; the company is still losing money."}),s(26,null,10,-24,-95,2.1,0,0,{news:"Shares jump 86% as the stock trends on social media. No change in the business."}),s(12,null,8,-25,-100,2.2,0,0,{news:"Shares give back the entire rally."}),s(10,null,5,-28,-110,2.3,0,0),s(9,null,4,-30,-115,2.4,0,0),s(7,null,2,-31,-120,2.5,0,0),s(15,null,3,-29,-110,2.5,0,0,{news:"Another social media frenzy: shares +114%. Losses widen."}),s(8,null,1,-32,-125,2.6,0,0,{news:"Rally fades. Shares -47%."})],
+ CRST:[s(40,9,6,24,120,1.0,3.4,40),s(43,9.4,8,25,130,1.0,3.2,39,{news:"Higher rates lift lending margins."}),s(35,7.8,9,26,135,1.0,3.9,38),s(39,8.5,8,25,128,1.0,3.5,40),s(37,8.6,5,23,110,1.0,3.7,45),s(30,9.4,-4,18,70,1.1,4.6,72,{news:"Loan losses climb as the economy slows. Payout ratio jumps to 72%."}),s(28,11,-6,14,40,1.1,2.1,40,{divCut:true,news:"Board cuts the dividend by more than half to preserve capital."}),s(31,11.5,-2,15,55,1.1,1.9,38)],
+ TRFL:[s(58,10,3,11,160,.7,4.1,42),s(62,10.4,6,12,175,.7,3.9,40),s(53,8.8,6,12,172,.7,4.5,40),s(57,9.2,4,11.5,165,.7,4.2,41),s(72,8.6,24,16,260,.6,3.4,35,{news:"Oil tops $100. Record cash flow."}),s(66,8.9,15,14,220,.6,3.7,37),s(60,9.6,4,12,180,.7,4.0,41),s(58,9.8,1,11.5,170,.7,4.1,42)],
+ TRSY:[f(100,4.3),f(97,4.7),f(93,5.1),f(94,5.0),f(92,5.2),f(98,4.5,{news:"Bonds rally on recession fears."}),f(102,4.1),f(103,4.0)],
+ CORP:[f(50,5.4),f(49,5.7),f(46.5,6.3),f(47.2,6.1),f(46.8,6.2),f(47.5,6.1),f(49.6,5.6),f(50.4,5.4)],
+ MMKT:[f(10,4.5),f(10.06,4.5),f(10.12,5.25),f(10.19,5.25),f(10.26,5.25),f(10.32,5.25),f(10.39,4.75),f(10.45,4.5)]
+};
+const ROUNDS = [
+ {title:"Opening Bell",headline:"Markets open the year calm",story:"The economy is growing at a steady 2.4%. Inflation is 3.1% and the Fed is holding rates at 4.50%. Build your opening portfolio. Every buy needs a rule.",temptation:"You do not have to invest all of your cash today. Your rules decide what qualifies.",panic:false,macro:{fed:4.5,cpi:3.1,gdp:2.4,unemp:3.9,oil:78}},
+ {title:"Inflation Heats Up",headline:"PixelPop soars 86% as frenzy spreads",story:"Inflation jumped to 4.0%. The Fed signals more rate hikes are coming. Bond prices are falling and rate-sensitive stocks are sliding.",temptation:"Everyone in the hallway is talking about PixelPop. It has never earned a profit. Does it meet your buy rules?",panic:false,macro:{fed:4.5,cpi:4.0,gdp:2.6,unemp:3.7,oil:84}},
+ {title:"The Rate Shock",headline:"Markets in freefall as Fed hikes",story:"The Fed raised rates to 5.25%. Stocks fell hard across the board. Read the financials: most companies look about the same as last round.",temptation:"Your portfolio is down. Before you sell anything, find the rule that tells you to. If you can't find one, what are you feeling?",panic:true,macro:{fed:5.25,cpi:4.2,gdp:2.1,unemp:3.8,oil:86}},
+ {title:"Earnings Season",headline:"Record profits at Ironworks",story:"Companies reported quarterly results. Inflation eased slightly to 3.7%, but the Fed is holding rates high.",temptation:"Ironworks reported record net income. Check its free cash flow and debt before you celebrate.",panic:false,macro:{fed:5.25,cpi:3.7,gdp:1.9,unemp:4.0,oil:82}},
+ {title:"Oil Spike",headline:"Oil tops $100; Helix wins FDA approval",story:"Oil jumped above $100 a barrel, pushing up costs for many businesses. Economic growth is slowing to 1.5%.",temptation:"If you own Helix, it may now be a much bigger share of your portfolio. What do your position limits say?",panic:false,macro:{fed:5.25,cpi:3.9,gdp:1.5,unemp:4.2,oil:104}},
+ {title:"The Slowdown",headline:"Recession fears grip Wall Street",story:"GDP growth slowed to 0.6% and unemployment rose to 4.7%. The Fed paused its hikes. Investors are moving into bonds.",temptation:"Recession talk is everywhere. Does your thesis care about the economy, or only about your companies?",panic:false,macro:{fed:5.25,cpi:3.3,gdp:0.6,unemp:4.7,oil:92}},
+ {title:"The Pivot",headline:"Fed cuts rates; Crestview slashes dividend",story:"The Fed cut rates to 4.75% as inflation cooled to 2.9%. Stocks rallied.",temptation:"Novaline's stock is up 26% this round, but revenue growth fell to 11%. Which one does your thesis care about?",panic:false,macro:{fed:4.75,cpi:2.9,gdp:0.9,unemp:4.8,oil:85}},
+ {title:"Year-End",headline:"The year in the books",story:"Inflation is back to 2.6% and the Fed cut again to 4.50%. Make your final moves, then reflect on your year.",temptation:"Last round. Would you make each of this year's trades again, knowing only what you knew at the time?",panic:false,macro:{fed:4.5,cpi:2.6,gdp:1.6,unemp:4.6,oil:80}}
+];
+function sampleYear(){
+  return JSON.parse(JSON.stringify({
+    name:"Market Year 2031",
+    assets:ASSETS,
+    rounds:ROUNDS.map((r,i)=>Object.assign({},r,{data:Object.fromEntries(ASSETS.map(a=>[a.t,D[a.t][i]]))}))
+  }));
+}
+function defaultMarket(){return {year:sampleYear(),hints:false,reviewAfter:[3,6],startCash:100000,codeWord:"hersey"};}
+function embeddedConfig(){try{const el=document.getElementById("tl-config");const v=el?JSON.parse(el.textContent):null;return v&&v.year?v:null}catch(e){return null}}
+
+/* ============================================================
+   THESES
+   ============================================================ */
+const TIGHT=["Consumer Staples","Energy","Financials","Cash"];
+const EASE=["Technology","Utilities","Healthcare","Industrials","Government Bonds","Corporate Bonds"];
+const isFund=m=>m&&m.type!=="stock";
+const TYPE_COLOR={stock:"var(--c-stock)",bond:"var(--c-bond)",mm:"var(--c-mm)"};
+const THESES={
+ value:{color:"#6b8fbf",name:"Value Hunter",short:"Buy profitable companies when the market puts them on sale.",
+  philosophy:"Markets overreact. I buy profitable, financially healthy companies when they are cheap and hold until the price catches up to the value.",
+  falsifier:"If the companies I buy keep losing cash flow, or cheap stocks keep getting cheaper for reasons I missed in the statements.",
+  params:{maxPE:[15,6,30,"Max P/E to buy"],maxDE:[1.5,.3,3,"Max debt-to-equity to buy"],sellPE:[25,12,60,"Take profits when P/E rises above"],maxPos:[20,5,40,"Max % in one stock"]},
+  rules:P=>[["B1","buy",`P/E is ${P.maxPE} or lower (the company must be profitable)`],["B2","buy","Free cash flow is positive"],["B3","buy",`Debt-to-equity is ${P.maxDE} or lower`],["S1","sell",`Take profits (trim) when P/E rises above ${P.sellPE}`],["S2","sell","Sell if free cash flow turns negative: the thesis is broken"],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["C1","cash","Park uninvested cash in bonds or the money market"],["H1","hold","A falling price alone is never a reason to sell"]],
+  buy(c){const a=c.a,P=c.P,fail=[];if(isFund(c.meta))return{pass:["C1"],fail};
+   if(a.pe==null||a.pe>P.maxPE)fail.push(["B1",a.pe==null?"No P/E: the company is not profitable":`P/E is ${a.pe} (limit ${P.maxPE})`]);
+   if(!(a.fcf>0))fail.push(["B2",`Free cash flow is ${a.fcf}M`]);
+   if(a.de>P.maxDE)fail.push(["B3",`Debt-to-equity is ${a.de} (limit ${P.maxDE})`]);
+   return{pass:["B1","B2","B3"],fail};},
+  sells(c){const a=c.a,P=c.P,t=[];if(isFund(c.meta))return[["C1","optional","Cash management"]];
+   if(a.fcf<0)t.push(["S2","exit",`Free cash flow turned negative (${a.fcf}M)`]);
+   if(a.pe!=null&&a.pe>P.sellPE)t.push(["S1","trim",`P/E reached ${a.pe} (take profits above ${P.sellPE})`]);return t;}
+ },
+ growth:{color:"#45c08a",name:"Growth Builder",short:"Own the fastest-growing companies and ride them while growth lasts.",
+  philosophy:"Companies that grow revenue fast eventually earn big profits. I pay up for growth and hold through volatility as long as the growth story is intact.",
+  falsifier:"If revenue growth slows at the companies I own, or margins keep shrinking while sales grow.",
+  params:{minGrowth:[20,10,40,"Min revenue growth % to buy"],sellGrowth:[12,0,25,"Sell if growth falls below %"],trimAt:[50,20,150,"Trim winners after a gain of %"],maxPos:[25,5,40,"Max % in one stock"]},
+  rules:P=>[["B1","buy",`Revenue growth is ${P.minGrowth}% or higher`],["B2","buy","Net margin is not shrinking compared with last round"],["S1","sell",`Sell if revenue growth falls below ${P.sellGrowth}%: the growth story is over`],["S2","sell",`Trim (sell up to half) after a gain of ${P.trimAt}% or more`],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["C1","cash","Park uninvested cash in bonds or the money market"],["H1","hold","Hold growers through price drops while growth is intact"]],
+  buy(c){const a=c.a,P=c.P,fail=[];if(isFund(c.meta))return{pass:["C1"],fail};
+   if(a.g<P.minGrowth)fail.push(["B1",`Revenue growth is ${a.g}% (minimum ${P.minGrowth}%)`]);
+   if(c.pv&&a.m<c.pv.m)fail.push(["B2",`Net margin shrank from ${c.pv.m}% to ${a.m}%`]);return{pass:["B1","B2"],fail};},
+  sells(c){const a=c.a,P=c.P,t=[];if(isFund(c.meta))return[["C1","optional","Cash management"]];
+   if(a.g<P.sellGrowth)t.push(["S1","exit",`Revenue growth fell to ${a.g}%`]);
+   if(c.trimGain!=null&&c.trimGain>=P.trimAt)t.push(["S2","trim",`Up ${c.trimGain.toFixed(0)}% (trim at ${P.trimAt}%)`]);return t;}
+ },
+ dividend:{color:"#c9a34e",name:"Dividend Income",short:"Build a paycheck from companies that share their profits.",
+  philosophy:"Steady income compounds. I own companies and funds that pay reliable income, and I judge them by the safety of that income, not the daily price.",
+  falsifier:"If my companies cut their dividends, or if they pay out more than they can afford.",
+  params:{minYield:[3,1,6,"Min yield % to buy"],maxPayout:[80,50,95,"Max payout ratio % to buy"],maxPos:[20,5,40,"Max % in one stock"],minFixed:[20,0,60,"Min % in bonds, money market, or cash"]},
+  rules:P=>[["B1","buy",`Yield is ${P.minYield}% or higher (stocks and funds)`],["B2","buy",`Payout ratio is ${P.maxPayout}% or lower (the dividend is affordable)`],["S1","sell","Sell if the company cuts its dividend"],["S2","sell","Sell if the payout ratio rises above 90%"],["S3","sell",`May sell if yield falls below ${P.minYield-1}%`],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["R2","risk",`Keep at least ${P.minFixed}% in bonds, money market, or cash`],["C1","cash","Bonds and money market may be sold to buy qualifying stocks"]],
+  buy(c){const a=c.a,P=c.P,fail=[];
+   if(!(a.y>=P.minYield))fail.push(["B1",`Yield is ${a.y||0}% (minimum ${P.minYield}%)`]);
+   if(!isFund(c.meta)&&a.po>P.maxPayout)fail.push(["B2",`Payout ratio is ${a.po}% (limit ${P.maxPayout}%)`]);
+   return{pass:isFund(c.meta)?["B1"]:["B1","B2"],fail};},
+  sells(c){const a=c.a,P=c.P,t=[];if(isFund(c.meta))return[["C1","optional","Cash management"]];
+   if(a.divCut)t.push(["S1","exit","The company cut its dividend"]);
+   if(a.po>90)t.push(["S2","exit",`Payout ratio is ${a.po}%`]);
+   if(a.y<P.minYield-1)t.push(["S3","optional",`Yield fell to ${a.y}%`]);return t;}
+ },
+ momentum:{color:"#e08a4f",name:"Momentum Trader",short:"Ride what is rising. Cut losers fast, trim winners.",
+  philosophy:"Trends tend to continue. I buy what is already rising, cut losses quickly with a stop-loss, and take profits so one trade never ruins me.",
+  falsifier:"If the stocks I buy after a rise keep reversing, so my stop-losses fire more often than my trims.",
+  params:{minMom:[10,3,30,"Min price gain % last round to buy"],stop:[12,5,30,"Stop-loss: sell after a loss of %"],trimAt:[30,10,100,"Trim winners after a gain of %"],maxPos:[20,5,40,"Max % in one asset"]},
+  rules:P=>[["B1","buy",`Price rose ${P.minMom}% or more since last round`],["S1","sell",`Stop-loss: sell if down ${P.stop}% from your cost`],["S2","sell",`Trim after a gain of ${P.trimAt}% or more`],["S3","sell","May sell if the price fell 5% or more this round (trend broke)"],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["C1","cash","Hold uninvested cash in the money market only"]],
+  buy(c){const P=c.P,fail=[];if(c.meta.type==="mm")return{pass:["C1"],fail};
+   if(c.chg==null)fail.push(["B1","No trend yet: there is no previous round to compare"]);
+   else if(c.chg<P.minMom)fail.push(["B1",`Price moved ${c.chg.toFixed(1)}% (need +${P.minMom}%)`]);return{pass:["B1"],fail};},
+  sells(c){const P=c.P,t=[];if(c.meta.type==="mm")return[["C1","optional","Cash management"]];
+   if(c.gain!=null&&c.gain<=-P.stop)t.push(["S1","exit",`Down ${Math.abs(c.gain).toFixed(0)}% from cost (stop at ${P.stop}%)`]);
+   if(c.trimGain!=null&&c.trimGain>=P.trimAt)t.push(["S2","trim",`Up ${c.trimGain.toFixed(0)}% (trim at ${P.trimAt}%)`]);
+   if(c.chg!=null&&c.chg<=-5)t.push(["S3","optional",`Price fell ${Math.abs(c.chg).toFixed(1)}% this round`]);return t;}
+ },
+ macro:{color:"#a98be0",name:"Macro Rotator",short:"Let interest rates and inflation decide which sectors you own.",
+  philosophy:"The economy sets the tide. When the Fed is fighting inflation I own defensive and rate-friendly sectors; when it is easing I rotate into growth and bonds.",
+  falsifier:"If the sectors I rotate into keep lagging the ones I rotated out of, my regime signals are wrong.",
+  params:{maxPos:[25,5,40,"Max % in one stock"]},
+  rules:P=>[["B1","buy","Buy only sectors that fit the regime. Tightening: Consumer Staples, Energy, Financials, money market. Easing: Technology, Utilities, Healthcare, Industrials, bonds. Neutral: any sector"],["B2","buy","Stocks must have positive free cash flow"],["S1","sell","Rotate out (sell) of anything that no longer fits the regime"],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["H1","hold","The regime comes from the Fed and inflation, not from daily prices"]],
+  buy(c){const fail=[];const ok=c.reg==="Neutral"||(c.reg==="Tightening"?TIGHT:EASE).includes(c.meta.sector);
+   if(!ok)fail.push(["B1",`${c.meta.sector} does not fit a ${c.reg} regime`]);
+   if(!isFund(c.meta)&&!(c.a.fcf>0))fail.push(["B2",`Free cash flow is ${c.a.fcf}M`]);return{pass:["B1","B2"],fail};},
+  sells(c){const ok=c.reg==="Neutral"||(c.reg==="Tightening"?TIGHT:EASE).includes(c.meta.sector);
+   return ok?[]:[["S1","exit",`${c.meta.sector} does not fit a ${c.reg} regime`]];}
+ },
+ preserver:{color:"#5fb8c9",name:"Capital Preserver",short:"Protect the downside first. Small positions, mostly bonds.",
+  philosophy:"The first rule is not to lose money. I keep most of my money in bonds and cash, own only steady stocks in small amounts, and cut losses before they grow.",
+  falsifier:"If my portfolio still falls as much as the market in a selloff, my protections are not working.",
+  params:{maxBeta:[1.0,.3,1.5,"Max beta to buy a stock"],stop:[15,5,30,"Stop-loss: sell after a loss of %"],trimAt:[20,10,60,"Trim winners after a gain of %"],maxPos:[10,5,20,"Max % in one stock"],minFixed:[50,30,80,"Min % in bonds, money market, or cash"]},
+  rules:P=>[["B1","buy",`Stocks must have beta of ${P.maxBeta} or lower (steady)`],["B2","buy","Stocks must have positive free cash flow"],["C1","cash","Bonds and money market always qualify"],["S1","sell",`Stop-loss: sell if down ${P.stop}% from your cost`],["S2","sell",`Trim after a gain of ${P.trimAt}% or more`],["R1","risk",`No single stock above ${P.maxPos}% of the portfolio`],["R2","risk",`Keep at least ${P.minFixed}% in bonds, money market, or cash`]],
+  buy(c){const a=c.a,P=c.P,fail=[];if(isFund(c.meta))return{pass:["C1"],fail};
+   if(c.meta.beta>P.maxBeta)fail.push(["B1",`Beta is ${c.meta.beta} (limit ${P.maxBeta})`]);
+   if(!(a.fcf>0))fail.push(["B2",`Free cash flow is ${a.fcf}M`]);return{pass:["B1","B2"],fail};},
+  sells(c){const P=c.P,t=[];if(isFund(c.meta))return[["C1","optional","Cash management"]];
+   if(c.gain!=null&&c.gain<=-P.stop)t.push(["S1","exit",`Down ${Math.abs(c.gain).toFixed(0)}% from cost (stop at ${P.stop}%)`]);
+   if(c.trimGain!=null&&c.trimGain>=P.trimAt)t.push(["S2","trim",`Up ${c.trimGain.toFixed(0)}% (trim at ${P.trimAt}%)`]);return t;}
+ }
+};
+const THESIS_ORDER=["value","growth","dividend","momentum","macro","preserver"];
+const defaultParams=k=>Object.fromEntries(Object.entries(THESES[k].params).map(([n,v])=>[n,v[0]]));
+
+const QUIZ=[
+ {q:"A stock you own drops 30% in a week. There is no company news. You…",o:[["Check whether it's now a bargain","value"],["Check whether the growth story changed","growth"],["Sell. The trend has turned.","momentum"],["Would never have that much in one stock","preserver"]]},
+ {q:"Which company would you rather own?",o:[["A grocery chain paying a 4% dividend","dividend"],["A robotics firm growing 40% a year","growth"],["A steel maker trading at 8 times earnings","value"],["Whatever sector benefits from where rates are headed","macro"]]},
+ {q:"A great investing year looks like…",o:[["Steady income checks every quarter","dividend"],["Crushing the market","momentum"],["Not losing money while others panic","preserver"],["Calling the economy right","macro"]]},
+ {q:"The Fed just raised interest rates. You…",o:[["Shift toward cash, banks, and defensive stocks","macro"],["Do nothing. I own businesses, not the economy.","value"],["Look for higher yields to lock in","dividend"],["Follow whatever is going up","momentum"]]},
+ {q:"Where does your conviction come from?",o:[["Financial statements","value"],["Price charts and trends","momentum"],["Economic data","macro"],["A company's future potential","growth"]]},
+ {q:"Your portfolio drops 20%. How do you feel?",o:[["Fine, as long as the dividends keep coming","dividend"],["Fine, if my companies are still growing","growth"],["Sick to my stomach","preserver"],["I'd have cut my losses at 10%","momentum"]]}
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $=sel=>document.querySelector(sel);
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>(n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString("en-US");
+const money2=n=>"$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=(n,d=1)=>n==null||isNaN(n)?"·":(n>0?"+":"")+n.toFixed(d)+"%";
+const dirCls=n=>n==null?"flat":n>0.05?"up":n<-0.05?"down":"flat";
+const words=s=>String(s||"").trim().split(/\s+/).filter(Boolean).length;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200);}
+function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function fnv(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
+const CODE_WORDS=["BULL","BEAR","YIELD","ALPHA","HEDGE","LEDGER","MARGIN","CREDIT","EQUITY","BOND","RALLY","ASSET","PROFIT","CAPITAL","TICKER","AUDIT","VALUE","GROWTH","INCOME","RISK"];
+function roundCode(r){const h=fnv((Y().name||"")+"|"+(S.market.codeWord||"")+"|round"+r);return CODE_WORDS[h%CODE_WORDS.length]+"-"+String(10+(h>>>8)%90);}
+const normCode=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+const SALT="thesislab|v1|integrity";
+function b64e(bytes){let s="";for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
+function b64d(str){str=str.replace(/-/g,"+").replace(/_/g,"/");while(str.length%4)str+="=";const s=atob(str);const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
+async function pipe(bytes,Stream){const cs=new Stream("deflate-raw");const w=cs.writable.getWriter();w.write(bytes);w.close();return new Uint8Array(await new Response(cs.readable).arrayBuffer());}
+async function encodeState(st){
+  const body=JSON.stringify(Object.assign({},st,{overrides:undefined,_id:undefined}));
+  const payload=JSON.stringify({y:Y().name,s:body,k:fnv(body+SALT).toString(36)});
+  const raw=new TextEncoder().encode(payload);
+  if(typeof CompressionStream!=="undefined"){try{return "TL1Z."+b64e(await pipe(raw,CompressionStream))}catch(e){}}
+  return "TL1J."+b64e(raw);
+}
+async function decodeState(code){
+  code=String(code||"").trim();const m=code.match(/^TL1([ZJ])\.([A-Za-z0-9_-]+)$/);if(!m)throw new Error("format");
+  let bytes=b64d(m[2]);if(m[1]==="Z")bytes=await pipe(bytes,DecompressionStream);
+  const p=JSON.parse(new TextDecoder().decode(bytes));const st=JSON.parse(p.s);
+  return{st,year:p.y,sigOk:fnv(p.s+SALT).toString(36)===p.k};
+}
+
+/* ============================================================
+   STATE + STORE
+   ============================================================ */
+const S={mode:"local",ready:false,market:defaultMarket(),me:null,myId:"local",students:[],isTeacher:false,view:"thesis",
+ ui:{quiz:{},pick:null,draft:{name:"",period:"",philosophy:"",falsifier:""},ticket:{side:"buy",t:"",sh:"",cite:"",evidence:"",emo:3},journal:{text:"",emo:3},amend:{memo:""},tSel:null,yearDraft:null,yr:1,confirm:null,io:""}};
+let db=null, userCap=null, meRef=null;
+
+const EMBED=embeddedConfig();
+async function initStore(){
+  // Students: no sign-in. Work lives on this device; the year comes from the published page.
+  S.mode="local"; S.isTeacher=false;
+  S.market=normMarket(EMBED||defaultMarket());
+  S.me=lsGet("tl.me");
+  S.students=[];
+  S.ready=true; render();
+  // Teacher: signed in as an editor of this page, with the shared gradebook.
+  try{
+    const cl=window.claude;
+    if(cl&&cl.use){
+      const [d,u]=await Promise.all([cl.use("db"),cl.use("user")]);
+      db=d; userCap=u;
+    }
+  }catch(e){db=null}
+  if(!db||!userCap)return;
+  let canEdit=false; try{canEdit=!!(await userCap.canEdit())}catch(e){}
+  if(!canEdit)return;
+  S.mode="db"; S.isTeacher=true;
+  db.doc("market/state").onSnapshot(sn=>{S.market=sn.exists?normMarket(sn.data()):normMarket(EMBED||defaultMarket());render();},()=>{});
+  db.collection("students").onSnapshot(qs=>{S.students=qs.docs.map(d=>Object.assign({_id:d.id},d.data()));render();},()=>{});
+  render();
+}
+function normMarket(m){
+  const d=defaultMarket(); m=Object.assign({},d,m||{});
+  if(!m.year||!Array.isArray(m.year.rounds)||!m.year.rounds.length)m.year=d.year;
+  if(!Array.isArray(m.reviewAfter))m.reviewAfter=[];
+  return m;
+}
+async function saveMarket(patch){
+  const next=Object.assign({},S.market,patch);
+  if(S.mode==="db"){
+    try{await db.doc("market/state").set(next)}catch(e){toast("Could not save the market. "+(e&&e.message||""));return false}
+  }else{S.market=next;lsSet("tl.market",next);render();}
+  return true;
+}
+async function saveMe(st){
+  S.me=st;lsSet("tl.me",st);
+  if(lsGet("tl.me")==null)toast("This browser is blocking saved data. Use “Get my code” on the Discipline Report often so you don't lose work.");
+  render();return true;
+}
+async function saveOverride(sid,itemId,val){
+  const st=S.students.find(x=>x._id===sid); if(!st||S.mode!=="db")return;
+  const ov=Object.assign({},st.overrides||{}); if(val)ov[itemId]=val; else delete ov[itemId];
+  try{await db.doc("students/"+sid).update({overrides:ov})}catch(e){toast("Could not save the override.")}
+}
+async function deleteStudent(sid){
+  if(S.mode!=="db")return;
+  try{await db.doc("students/"+sid).delete();toast("Removed from the gradebook.")}catch(e){toast("Could not remove that student.")}
+}
+async function importCodes(text){
+  const tokens=String(text||"").split(/\s+/).filter(t=>/^TL1[ZJ]\./.test(t));
+  if(!tokens.length)return toast("No turn-in codes found. Codes start with TL1.");
+  let ok=0,bad=0,flag=0;
+  for(const tk of tokens){
+    try{
+      const {st,year,sigOk}=await decodeState(tk);
+      if(!st||!st.thesis||!THESES[st.thesis])throw 0;
+      const sid="s_"+fnv((st.name||"")+"|"+(st.period||"")+"|"+(st.created||"")).toString(36);
+      const body=Object.assign({},st,{importedAt:Date.now(),sigOk,codeYear:year||""});delete body.overrides;delete body._id;
+      const existing=S.students.find(x=>x._id===sid);
+      if(existing)await db.doc("students/"+sid).update(body); else await db.doc("students/"+sid).set(Object.assign({overrides:{}},body));
+      ok++;if(!sigOk||year!==Y().name)flag++;
+    }catch(e){bad++;}
+  }
+  toast(`Imported ${ok} code${ok===1?"":"s"}${bad?`, ${bad} unreadable`:""}${flag?`, ${flag} flagged`:""}.`);
+  if(ok)S.ui.imp="";render();
+}
+async function publishToStudents(){
+  let art=null;try{art=await window.claude.use("artifact")}catch(e){}
+  if(!art)return toast("Publishing works only when you open this page in Claude as its owner or an editor.");
+  const cfg={year:Y(),hints:!!S.market.hints,reviewAfter:S.market.reviewAfter,startCash:S.market.startCash,codeWord:S.market.codeWord||""};
+  const json=JSON.stringify(cfg).replace(/</g,"\\u003c");
+  const reset=":root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}";
+  const html='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+'</style></head><body>'
+    +'<title>Thesis Lab</title>\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="'+FONT_URL+'">\n'
+    +'<style id="tl-style">'+document.getElementById("tl-style").textContent+'</style>\n'+MARKUP
+    +'<script type="application/json" id="tl-config">'+json+'</scr'+'ipt><script id="tl-app">'+document.getElementById("tl-app").textContent+'</scr'+'ipt>\n</body></html>';
+  try{await art.publish(html);toast("Published. Students get this year the next time they open the link.");}
+  catch(e){toast(e&&e.code==="conflict"?"Someone else published at the same time. Try again.":"Could not publish: "+((e&&e.message)||"unknown error"));}
+}
+function needsPublish(){
+  if(S.mode!=="db")return false;
+  const cur={year:Y(),hints:!!S.market.hints,reviewAfter:S.market.reviewAfter,startCash:S.market.startCash,codeWord:S.market.codeWord||""};
+  const emb=EMBED?{year:EMBED.year,hints:!!EMBED.hints,reviewAfter:EMBED.reviewAfter||[],startCash:EMBED.startCash,codeWord:EMBED.codeWord||""}:normMarket(defaultMarket());
+  if(!EMBED){emb.hints=false;delete emb.released;}
+  return JSON.stringify(cur)!==JSON.stringify({year:emb.year,hints:!!emb.hints,reviewAfter:emb.reviewAfter,startCash:emb.startCash,codeWord:emb.codeWord||""});
+}
+
+/* ============================================================
+   MARKET MATH
+   ============================================================ */
+const Y=()=>S.market.year;
+const nR=()=>Y().rounds.length;
+const meta=t=>Y().assets.find(a=>a.t===t);
+const dat=(t,r)=>{const R=Y().rounds[r-1];return R&&R.data&&R.data[t]||null;};
+function regime(r){const m=Y().rounds[r-1].macro,pm=r>1?Y().rounds[r-2].macro:null;
+  if((pm&&m.fed>pm.fed)||m.cpi>=3.5)return"Tightening";
+  if((pm&&m.fed<pm.fed)||m.gdp<1)return"Easing";return"Neutral";}
+function valueAt(cash,holdings,r){let v=cash;for(const[t,h]of Object.entries(holdings||{})){const d=dat(t,r);if(d&&h.sh>0)v+=h.sh*d.p;}return v;}
+function weights(cash,holdings,r){const V=valueAt(cash,holdings,r);let fixed=cash;const w={};
+  for(const[t,h]of Object.entries(holdings||{})){const d=dat(t,r),m=meta(t);if(!d||!m||!(h.sh>0))continue;const v=h.sh*d.p;w[t]=v/V*100;if(isFund(m))fixed+=v;}
+  return{V,w,fixed:fixed/V*100};}
+function ctxFor(st,t,r,hold){
+  const a=dat(t,r),pv=r>1?dat(t,r-1):null,m=meta(t);
+  return{a,pv,meta:m,P:st.params,reg:regime(r),
+    chg:pv&&pv.p?(a.p/pv.p-1)*100:null,
+    gain:hold&&hold.sh>0?(a.p/hold.cost-1)*100:null,
+    trimGain:hold&&hold.sh>0?(a.p/(hold.base||hold.cost)-1)*100:null};
+}
+function indexAt(r){const st=Y().assets.filter(a=>a.type==="stock");let s=0,n=0;
+  for(const a of st){const d0=dat(a.t,1),d=dat(a.t,r);if(d0&&d){s+=d.p/d0.p;n++;}}return n?s/n:1;}
+
+/* ============================================================
+   JUDGING
+   ============================================================ */
+function judgeTrade(st,side,t,sh,r,cite,evidence){
+  const th=THESES[st.thesis],P=st.params,m=meta(t),a=dat(t,r),hold=st.holdings[t];
+  const c=ctxFor(st,t,r,hold);
+  const before=weights(st.cash,st.holdings,r);
+  const h2=clone(st.holdings);const val=sh*a.p;
+  if(side==="buy"){h2[t]=h2[t]||{sh:0,cost:a.p};h2[t].sh+=sh}else{h2[t].sh-=sh}
+  const after=weights(side==="buy"?st.cash-val:st.cash+val,h2,r);
+  let v="consistent",reasons=[],tags=[],just=[];
+  if(side==="buy"){
+    const res=th.buy(c);
+    if(res.fail.length){v="violation";res.fail.forEach(x=>reasons.push(`${x[0]} not met: ${x[1]}`));if(c.chg!=null&&c.chg>=40)tags.push("FOMO buy");}
+    else{just=res.pass;reasons.push(`Met ${res.pass.join(", ")}`);}
+    if(!isFund(m)&&P.maxPos&&(after.w[t]||0)>P.maxPos+.01){v="violation";tags.push("Oversized");reasons.push(`R1: position would be ${after.w[t].toFixed(1)}% (limit ${P.maxPos}%)`);}
+    if(P.minFixed!=null&&!isFund(m)&&after.fixed<P.minFixed-.01){v="violation";reasons.push(`R2: bonds and cash would drop to ${after.fixed.toFixed(1)}% (minimum ${P.minFixed}%)`);}
+  }else{
+    const trig=th.sells(c).slice();
+    if(!isFund(m)&&P.maxPos&&(before.w[t]||0)>P.maxPos+.01)trig.push(["R1","trim",`Position was ${before.w[t].toFixed(1)}% (limit ${P.maxPos}%)`]);
+    if(P.minFixed!=null&&!isFund(m)&&before.fixed<P.minFixed)trig.push(["R2","trim",`Bonds and cash were ${before.fixed.toFixed(1)}% (minimum ${P.minFixed}%)`]);
+    if(trig.length){
+      just=trig.map(x=>x[0]);trig.forEach(x=>reasons.push(`${x[0]}: ${x[2]}`));
+      const frac=hold&&hold.sh?sh/hold.sh:1;
+      const onlyTrim=trig.every(x=>x[1]==="trim"||x[1]==="optional")&&!trig.some(x=>x[1]==="exit")&&trig.some(x=>x[1]==="trim")&&!trig.some(x=>x[0]==="R1"||x[0]==="R2");
+      if(onlyTrim&&frac>.6&&!trig.some(x=>x[1]==="optional")){v="partial";reasons.push(`Rule says trim, but you sold ${(frac*100).toFixed(0)}% of the position`);}
+    }else{
+      const R=Y().rounds[r-1];
+      if((c.chg!=null&&c.chg<=-15)||(R.panic&&c.chg!=null&&c.chg<0)){v="violation";tags.push("Panic sell");reasons.push(`Sold after a ${Math.abs(c.chg).toFixed(0)}% drop with no sell rule triggered`);}
+      else{v="partial";reasons.push("No sell rule applied to this sale");}
+    }
+  }
+  let score=v==="consistent"?100:v==="partial"?60:0;
+  if(v!=="violation"){
+    if(!cite||cite==="none"){score-=15;reasons.push("No rule cited on the ticket");}
+    else if(just.length&&!just.includes(cite)){score-=15;reasons.push(`Cited ${cite}, but the rule that applies is ${just.join(" or ")}`);}
+    if(!/\d/.test(evidence||"")){score-=10;reasons.push("Evidence did not cite a number from the data");}
+  }
+  return{v,score:Math.max(0,score),reasons,tags,just};
+}
+
+function obligationsAt(st,r){
+  const th=THESES[st.thesis],P=st.params,out=[];const wt=weights(st.cash,st.holdings,r);
+  for(const[t,h]of Object.entries(st.holdings||{})){
+    if(!(h.sh>0))continue;const m=meta(t);if(!m||!dat(t,r))continue;
+    const c=ctxFor(st,t,r,h);
+    th.sells(c).filter(x=>x[1]==="exit"||x[1]==="trim").forEach(x=>out.push({t,id:x[0],type:x[1],why:x[2]}));
+    if(!isFund(m)&&P.maxPos&&(wt.w[t]||0)>P.maxPos+.01)out.push({t,id:"R1",type:"size",why:`${t} is ${wt.w[t].toFixed(1)}% of the portfolio (limit ${P.maxPos}%)`});
+  }
+  if(P.minFixed!=null&&wt.fixed<P.minFixed-.01)out.push({t:null,id:"R2",type:"alloc",why:`Bonds and cash are ${wt.fixed.toFixed(1)}% (minimum ${P.minFixed}%)`});
+  return out;
+}
+
+function audit(st){
+  const items=[];if(!st||!st.thesis)return{items,score:null};
+  const released=st.unlocked||0;
+  const ov=st.overrides||{};
+  const push=it=>{const o=ov[it.id];if(o){it.auto=it.score;it.score=o.score;it.v=o.score>=90?"consistent":o.score>=50?"partial":"violation";it.note=o.note||"";it.over=true;}items.push(it);};
+  for(const tr of st.trades||[]){
+    push({id:tr.id,r:tr.r,kind:"trade",label:`${tr.side==="buy"?"Bought":"Sold"} ${tr.sh} ${tr.t} @ ${money2(tr.px)}`,v:tr.verdict.v,score:tr.verdict.score,reasons:tr.verdict.reasons,tags:tr.verdict.tags,cite:tr.cite,evidence:tr.evidence,emo:tr.emo,hidden:!(st.locks||{})["r"+tr.r]});
+  }
+  for(const[k,L]of Object.entries(st.locks||{})){
+    const r=+k.slice(1);
+    (L.missed||[]).forEach((o,i)=>push({id:`m_${r}_${i}`,r,kind:"missed",label:o.t?`Kept ${o.t} after ${o.id} triggered`:`Ignored ${o.id}`,v:o.score>=50?"partial":"violation",score:o.score,reasons:[o.why+(o.score>=50?" (you sold some, but not enough)":"")],tags:["Missed rule"]}));
+    if(L.panicHold)push({id:`p_${r}`,r,kind:"credit",label:"Held through the panic",v:"credit",score:100,reasons:["Your holdings fell, no sell rule fired, and you did not sell"],tags:["Discipline"]});
+    const w=words(L.journal);
+    push({id:`j_${r}`,r,kind:"journal",label:"Round journal",v:w>=25?"consistent":w>=10?"partial":"violation",score:w>=25?100:w>=10?70:40,reasons:[`${w} words${w<25?" (aim for 25+)":""}`],journal:L.journal,emo:L.emo});
+  }
+  for(const am of st.amendments||[]){
+    const ok=words(am.memo)>=40&&/round|\d/i.test(am.memo);
+    push({id:am.id,r:am.r,kind:"amend",label:"Thesis amendment",v:ok?"consistent":"partial",score:ok?100:70,reasons:[Object.entries(am.changes||{}).map(([k,c])=>`${k}: ${c[0]} → ${c[1]}`).join("; ")||"Wording only",ok?"Memo cites evidence":"Memo should cite specific rounds or trades"],memo:am.memo});
+  }
+  const start=st.startRound||1;
+  for(let r=start;r<released;r++){
+    if(!(st.locks||{})["r"+r])push({id:`x_${r}`,r,kind:"missed",label:`Round ${r} not submitted`,v:"partial",score:50,reasons:["The round closed before you locked it"],tags:[]});
+  }
+  items.sort((a,b)=>a.r-b.r);
+  const scored=items.filter(i=>!i.hidden);
+  const score=scored.length?scored.reduce((s,i)=>s+i.score,0)/scored.length:null;
+  return{items,score};
+}
+function perf(st){
+  const r=Math.max(1,Math.min(st.unlocked||1,nR()));
+  const V=valueAt(st.cash,st.holdings,r),sc=st.startCash||S.market.startCash;
+  const start=st.startRound||1;
+  const idx=indexAt(r)/indexAt(start);
+  return{V,ret:(V/sc-1)*100,idxRet:(idx-1)*100,r};
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function curRound(){return S.me&&S.me.unlocked||0;}
+function roundOpen(st){const r=curRound();return r>=1&&st&&!(st.locks||{})["r"+r];}
+function amendOpen(st){const r=curRound();return st&&r>1&&S.market.reviewAfter.includes(r-1)&&!(st.locks||{})["r"+r]&&!(st.trades||[]).some(t=>t.r===r)&&!(st.amendments||[]).some(a=>a.r===r);}
+
+async function lockThesis(){
+  const d=S.ui.draft,k=S.ui.pick;
+  if(!k)return toast("Choose a thesis first.");
+  const first=d.name.trim().split(/\s+/)[0]||"",ini=String(d.initial||"").trim().replace(/[^A-Za-z]/g,"").slice(0,1).toUpperCase();
+  if(!first)return toast("Add your first name so your teacher can find you.");
+  if(!ini)return toast("Add the first letter of your last name.");
+  d.name=first.charAt(0).toUpperCase()+first.slice(1)+" "+ini+".";
+  if(words(d.philosophy)<8)return toast("Write your philosophy in at least one full sentence.");
+  if(words(d.falsifier)<6)return toast("Explain what would prove your thesis wrong.");
+  const st={name:d.name.trim(),period:d.period.trim(),thesis:k,params:defaultParams(k),philosophy:d.philosophy.trim(),falsifier:d.falsifier.trim(),
+    cash:S.market.startCash,startCash:S.market.startCash,holdings:{},trades:[],locks:{},amendments:[],unlocked:0,startRound:null,yearName:Y().name,quiz:S.ui.quiz,created:Date.now()};
+  if(await saveMe(st)){S.view="desk";render();toast("Thesis locked. Enter the Round 1 code to open the market.");}
+}
+async function unlockRound(){
+  const st=clone(S.me),cur=st.unlocked||0,code=normCode(S.ui.code);
+  if(!code)return toast("Type the round code your teacher gave you.");
+  if(cur>=1&&!(st.locks||{})["r"+cur])return toast(`Lock Round ${cur} first.`);
+  let target=0;for(let r=cur+1;r<=nR();r++){if(normCode(roundCode(r))===code){target=r;break;}}
+  if(!target)return toast("That code doesn't open a new round. Check it with your teacher.");
+  st.unlocked=target;if(!st.startRound)st.startRound=target;
+  if(await saveMe(st)){S.ui.code="";toast(`Round ${target} is open.`);window.scrollTo(0,0);}
+}
+async function turnIn(){
+  try{S.ui.turnCode=await encodeState(S.me);render();await copyText(S.ui.turnCode);}catch(e){toast("Could not make a code in this browser.");}
+}
+async function restoreFromCode(){
+  try{
+    const {st,sigOk}=await decodeState(S.ui.restore);
+    if(!st||!st.thesis||!THESES[st.thesis])throw 0;
+    if(!sigOk)return toast("That code was changed after it was made, so it can't be restored.");
+    delete st.overrides;delete st.importedAt;delete st.sigOk;delete st.codeYear;
+    await saveMe(st);S.ui.restore="";S.view="desk";render();toast(`Welcome back, ${st.name}.`);
+  }catch(e){toast("That isn't a working code. Copy the whole code, starting with TL1.");}
+}
+async function placeTrade(){
+  const st=clone(S.me),T=S.ui.ticket,r=curRound();
+  if(!roundOpen(st))return toast("This round is locked.");
+  const t=T.t,sh=Math.floor(+T.sh);const a=dat(t,r);
+  if(!t||!a)return toast("Pick an asset.");
+  if(!(sh>0))return toast("Enter a whole number of shares.");
+  if(!T.cite)return toast("Cite the rule that justifies this trade, or choose “No rule applies”.");
+  if(words(T.evidence)<5)return toast("Write your evidence: what in the data supports this trade?");
+  const val=sh*a.p;const h=st.holdings[t];
+  if(T.side==="buy"&&val>st.cash+.001)return toast(`Not enough cash. You have ${money(st.cash)}.`);
+  if(T.side==="sell"&&(!h||h.sh<sh))return toast(`You only own ${h?h.sh:0} shares of ${t}.`);
+  const verdict=judgeTrade(st,T.side,t,sh,r,T.cite,T.evidence);
+  if(T.side==="buy"){const n=h?h.sh:0;const cost=h?h.cost:a.p;st.holdings[t]={sh:n+sh,cost:(n*cost+sh*a.p)/(n+sh),base:h&&h.base?((n*h.base+sh*a.p)/(n+sh)):(n*cost+sh*a.p)/(n+sh)};st.cash-=val;}
+  else{h.sh-=sh;st.cash+=val;if(verdict.just.some(j=>j==="S2"||j==="S1"&&st.thesis==="value"))h.base=a.p;if(h.sh<=0)delete st.holdings[t];}
+  st.trades=(st.trades||[]).concat([{id:"t_"+uid(),r,side:T.side,t,sh,px:a.p,cite:T.cite,evidence:T.evidence.trim(),emo:T.emo,verdict,ts:Date.now()}]);
+  if(await saveMe(st)){
+    S.ui.ticket={side:T.side,t:"",sh:"",cite:"",evidence:"",emo:3};
+    toast(S.market.hints?`Trade placed: ${verdict.v.toUpperCase()}`:"Trade placed. Verdict revealed when you lock the round.");
+  }
+}
+async function lockRound(){
+  const st=clone(S.me),r=curRound(),J=S.ui.journal;
+  if(!roundOpen(st))return;
+  if(words(J.text)<10)return toast("Write at least a few sentences in your round journal.");
+  const obl=obligationsAt(st,r);
+  const soldNow=new Set((st.trades||[]).filter(x=>x.r===r&&x.side==="sell").map(x=>x.t));
+  const missed=obl.map(o=>{
+    if(o.type==="alloc")return Object.assign({},o,{score:0});
+    if(o.type==="size")return Object.assign({},o,{score:soldNow.has(o.t)?60:0});
+    if(o.type==="trim")return soldNow.has(o.t)?null:Object.assign({},o,{score:0});
+    return Object.assign({},o,{score:soldNow.has(o.t)?60:0});
+  }).filter(Boolean);
+  const R=Y().rounds[r-1];
+  const panicSold=(st.trades||[]).some(x=>x.r===r&&x.verdict.tags.includes("Panic sell"));
+  const fell=Object.keys(st.holdings).some(t=>{const c=ctxFor(st,t,r,st.holdings[t]);return meta(t).type==="stock"&&c.chg!=null&&c.chg<=-10;});
+  const panicHold=!!(R.panic&&fell&&!panicSold);
+  let income=0;
+  for(const[t,h]of Object.entries(st.holdings)){const m=meta(t),d=dat(t,r);if(m&&d&&m.type!=="mm"&&d.y>0)income+=h.sh*d.p*d.y/100/nR();}
+  st.cash+=income;
+  st.locks=Object.assign({},st.locks,{["r"+r]:{journal:J.text.trim(),emo:J.emo,missed,panicHold,income,value:valueAt(st.cash,st.holdings,r),ts:Date.now()}});
+  if(await saveMe(st)){S.ui.journal={text:"",emo:3};S.view="report";render();toast("Round locked. Your verdicts are in.");}
+}
+async function submitAmend(){
+  const st=clone(S.me),A=S.ui.amend,r=curRound();
+  if(!amendOpen(st))return;
+  if(words(A.memo)<40)return toast(`Your memo needs at least 40 words (you have ${words(A.memo)}).`);
+  const changes={};
+  for(const k of Object.keys(THESES[st.thesis].params)){const nv=A["p_"+k];if(nv!=null&&nv!==""&&+nv!==st.params[k]){const[,lo,hi]=THESES[st.thesis].params[k];const x=Math.min(hi,Math.max(lo,+nv));changes[k]=[st.params[k],x];st.params[k]=x;}}
+  if(A.philosophy&&A.philosophy.trim()&&A.philosophy.trim()!==st.philosophy){changes.philosophy=["v"+((st.amendments||[]).length+1),"v"+((st.amendments||[]).length+2)];st.philosophy=A.philosophy.trim();}
+  st.amendments=(st.amendments||[]).concat([{id:"a_"+uid(),r,changes,memo:A.memo.trim(),ts:Date.now()}]);
+  if(await saveMe(st)){S.ui.amend={memo:""};toast("Amendment ratified. Your new rules apply from this round.");}
+}
+
+/* ============================================================
+   RENDER: masthead
+   ============================================================ */
+function renderMast(){
+  const r=curRound(),R=r>=1?Y().rounds[r-1]:null,st=S.me;
+  const tabs=[["thesis","My Thesis"],["desk","Trading Desk"],["report","Discipline Report"]];
+  if(S.isTeacher)tabs.push(["teacher","Teacher"]);
+  const amend=st&&amendOpen(st);
+  $("#mast").innerHTML=`
+   <div class="mast-row">
+     <div class="brand"><h1>D214 <b>·</b> <small>THESIS LAB</small></h1><span class="tick">${esc(Y().name)}</span></div>
+     <div class="who">${st?`<b style="color:var(--white)">${esc(st.name)}</b>${st.period?" · "+esc(st.period):""} <span class="chip" style="background:transparent;border:1px solid ${THESES[st.thesis].color};color:${THESES[st.thesis].color}">${THESES[st.thesis].name}</span>`:""}</div>
+   </div>
+   <div class="mast-row">
+     <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.view===k}" data-act="view" data-k="${k}">${l}${k==="thesis"&&amend?'<span class="badge">Review open</span>':""}</button>`).join("")}</div>
+     <div class="eyebrow">${r<1?(st?"Waiting for the Round 1 code":"Thesis drafting phase"):`Round ${r} of ${nR()} · ${esc(R.title)}`}</div>
+   </div>`;
+  const tr=Math.max(1,r);
+  const tape=Y().assets.map(m=>{const a=dat(m.t,tr);if(!a)return"";const pv=tr>1?dat(m.t,tr-1):null;const c=pv?(a.p/pv.p-1)*100:null;
+    return `<span><span class="s">${esc(m.t)}</span> <span class="p">${money2(a.p)}</span> <span class="chg ${dirCls(c)}">${c==null?"":(c>=0?"▲ ":"▼ ")+Math.abs(c).toFixed(2)+"%"}</span></span>`}).join("");
+  $("#ttape").innerHTML=r>=1?tape:`<span class="p">Market closed · ${esc(Y().name)} · ${Y().assets.length} assets · ${nR()} rounds</span>`;
+}
+
+/* ============================================================
+   RENDER: thesis
+   ============================================================ */
+function quizScores(){const sc=Object.fromEntries(THESIS_ORDER.map(k=>[k,0]));Object.values(S.ui.quiz).forEach(k=>sc[k]++);return sc;}
+function rulesList(k,P){return `<ol class="rules">${THESES[k].rules(P).map(([id,kind,txt])=>`<li class="k-${kind}"><span class="rid">${id}</span><span>${esc(txt)}</span></li>`).join("")}</ol>`;}
+function viewThesis(){
+  const st=S.me;
+  if(st&&st.thesis)return viewCharter(st);
+  const answered=Object.keys(S.ui.quiz).length,sc=quizScores();
+  const top=answered?THESIS_ORDER.slice().sort((a,b)=>sc[b]-sc[a])[0]:null;
+  const pick=S.ui.pick,d=S.ui.draft;
+  return `
+  <section class="panel">
+    <div class="panel-h"><div><div class="eyebrow">Already started on another computer?</div><h3>Continue with your code</h3></div></div>
+    <div class="row"><label style="flex:3 1 260px">Paste the code from your Discipline Report<input type="text" id="restore" data-bind="restore" value="${esc(S.ui.restore||"")}" placeholder="TL1Z.…"></label><button class="btn" data-act="restore" style="flex:0 0 auto">Continue</button></div>
+  </section>
+  <section class="panel">
+    <div class="panel-h"><div><div class="eyebrow">Step 1 · Investor identity sort</div><h2>How do you think about money?</h2></div><span class="muted">${answered} of ${QUIZ.length} answered</span></div>
+    <p class="muted">There are no right answers. Your choices point toward a thesis, but you make the final call.</p>
+    ${QUIZ.map((q,i)=>`<div class="quiz-q"><b>${i+1}. ${esc(q.q)}</b><div class="quiz-opts">${q.o.map(([txt,k])=>`<button data-act="quiz" data-i="${i}" data-k="${k}" aria-pressed="${S.ui.quiz[i]===k}">${esc(txt)}</button>`).join("")}</div></div>`).join("")}
+  </section>
+  <section class="panel">
+    <div class="panel-h"><div><div class="eyebrow">Step 2 · Choose your thesis</div><h2>Six ways to invest</h2></div>${top?`<span class="chip gold">Your answers point to ${THESES[top].name}</span>`:""}</div>
+    <div class="grid-even">${THESIS_ORDER.map(k=>{const T=THESES[k];return `<button class="thesis-card" style="--tc:${T.color}" data-act="pick" data-k="${k}" aria-pressed="${pick===k}">
+      <span class="tname">${T.name}</span>${answered?`<span class="fit">FIT ${sc[k]} of ${QUIZ.length}</span>`:""}<span>${esc(T.short)}</span>${rulesList(k,defaultParams(k))}</button>`}).join("")}</div>
+  </section>
+  ${pick?`<section class="panel">
+    <div><div class="eyebrow">Step 3 · Write your charter</div><h2>${THESES[pick].name}</h2></div>
+    <div class="row"><label>First name<input type="text" id="d-name" data-bind="draft.name" value="${esc(d.name)}" placeholder="Jordan" autocomplete="off"></label><label style="flex:0 1 110px">Last initial<input type="text" id="d-init" data-bind="draft.initial" value="${esc(d.initial||"")}" placeholder="K" maxlength="1" autocomplete="off"></label><label>Class period<input type="text" id="d-period" data-bind="draft.period" value="${esc(d.period)}" placeholder="e.g. Period 3"></label></div>
+    <label>My investment philosophy, in my own words<textarea id="d-phil" data-bind="draft.philosophy" placeholder="${esc(THESES[pick].philosophy)}">${esc(d.philosophy)}</textarea></label>
+    <label>What would prove me wrong?<textarea id="d-fals" data-bind="draft.falsifier" placeholder="${esc(THESES[pick].falsifier)}">${esc(d.falsifier)}</textarea></label>
+    <div class="note">Once you lock your thesis, every trade will be graded on whether it follows these rules. You can refine the numbers only at review windows (after rounds ${S.market.reviewAfter.join(" and ")||"set by your teacher"}), and only with a written memo.</div>
+    <div><button class="btn primary" data-act="lockThesis">Lock my thesis</button></div>
+  </section>`:""}`;
+}
+function viewCharter(st){
+  const T=THESES[st.thesis],open=amendOpen(st),A=S.ui.amend;
+  const versions=(st.amendments||[]).length+1;
+  return `
+  <section class="charter" style="--tc:${T.color}">
+    <div class="panel-h"><div><div class="eyebrow">Investment charter · Version ${versions}</div><h2>${T.name}</h2></div><span class="chip">${esc(st.name)}</span></div>
+    <blockquote>${esc(st.philosophy)}</blockquote>
+    <div><div class="lab-s">Rules I trade by</div>${rulesList(st.thesis,st.params)}</div>
+    <div><div class="lab-s">What would prove me wrong</div><p>${esc(st.falsifier)}</p></div>
+    ${!(st.trades||[]).length&&!(Object.keys(st.locks||{}).length)?`<div><button class="btn" data-act="restartThesis">Start over with a different thesis</button></div>`:""}
+  </section>
+  ${open?`<section class="panel" style="border:2px solid var(--gold)">
+    <div><div class="eyebrow">Review window · Round ${curRound()}</div><h2>Amend your thesis</h2></div>
+    <p>You may refine your rules now, before you trade this round. Look back at your Discipline Report first. Which rules helped? Which ones fired at the wrong time? Change rules because of evidence, not because of one bad round.</p>
+    <div class="grid-even">${Object.entries(T.params).map(([k,[v,lo,hi,lab]])=>`<label>${esc(lab)} <span class="muted mono">now ${st.params[k]} · range ${lo} to ${hi}</span><input type="number" id="am-${k}" step="any" min="${lo}" max="${hi}" data-bind="amend.p_${k}" value="${esc(A["p_"+k]??st.params[k])}"></label>`).join("")}</div>
+    <label>Revised philosophy (optional)<textarea id="am-phil" data-bind="amend.philosophy">${esc(A.philosophy??st.philosophy)}</textarea></label>
+    <label>Amendment memo (40+ words). Cite specific rounds or trades as evidence.<textarea id="am-memo" data-bind="amend.memo" placeholder="In Round 3 my stop-loss forced me to sell NOVA at a 25% loss even though its revenue growth was still 35%...">${esc(A.memo||"")}</textarea></label>
+    <div class="row" style="align-items:center"><button class="btn gold" data-act="amend" style="flex:0 0 auto">Ratify amendment</button><span class="muted">${words(A.memo)} words</span></div>
+  </section>`:""}
+  ${(st.amendments||[]).length?`<section class="panel"><h3>Amendment history</h3>${st.amendments.map((a,i)=>`<div class="stack"><div class="eyebrow">Version ${i+2} · ratified at Round ${a.r}</div><div class="mono" style="font-size:.85rem">${Object.entries(a.changes).map(([k,c])=>`${esc(k)}: ${esc(c[0])} → ${esc(c[1])}`).join(" · ")||"No rule changes"}</div><p class="muted">${esc(a.memo)}</p></div>`).join('<div class="hr"></div>')}</section>`:""}`;
+}
+
+/* ============================================================
+   RENDER: desk
+   ============================================================ */
+function macroStrip(r){
+  const m=Y().rounds[r-1].macro,pm=r>1?Y().rounds[r-2].macro:null;
+  const it=[["Fed funds rate","fed","%"],["Inflation (CPI)","cpi","%"],["GDP growth","gdp","%"],["Unemployment","unemp","%"],["Oil","oil","$"]];
+  return `<div class="macro">${it.map(([l,k,u])=>{const v=m[k],d=pm?v-pm[k]:null;return `<div class="mstat"><span class="lab-s">${l}</span><span class="v">${u==="$"?"$"+v:v.toFixed(2)+"%"}</span><span class="d ${d==null?"flat":d>0?"up":d<0?"down":"flat"}">${d==null?"start of year":d===0?"unchanged":(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(2)+(u==="$"?"":" pts")}</span></div>`}).join("")}
+   <div class="mstat"><span class="lab-s">Macro regime</span><span class="v" style="font-family:var(--f-display);font-size:1.15rem">${regime(r)}</span><span class="d flat">from Fed and CPI</span></div></div>`;
+}
+function marketTable(st,r){
+  const hints=S.market.hints&&st;
+  const rows=Y().assets.map(m=>{const a=dat(m.t,r);if(!a)return"";const pv=r>1?dat(m.t,r-1):null;const chg=pv?(a.p/pv.p-1)*100:null;const fund=isFund(m);
+    let hint="";if(hints){const res=THESES[st.thesis].buy(ctxFor(st,m.t,r,st.holdings[m.t]));hint=res.fail.length?`<span class="chip bad">fails ${res.fail.map(x=>x[0]).join(",")}</span>`:`<span class="chip good">fits buy rules</span>`;}
+    const cell=v=>fund?"·":v;
+    return `<tr class="click${S.ui.ticket.t===m.t?" sel":""}" data-act="pickAsset" data-k="${m.t}">
+      <td class="name"><span class="sw" style="background:${TYPE_COLOR[m.type]||"var(--c-cash)"}"></span><b>${m.t}</b> ${esc(m.name)}<small>${esc(m.sector)}${hint?" · "+hint:""}</small></td>
+      <td>${money2(a.p)}</td><td class="${dirCls(chg)}">${pct(chg)}</td>
+      <td>${cell(a.pe==null?"loss":a.pe)}</td><td>${cell(pct(a.g,0))}</td><td>${cell(a.m+"%")}</td><td class="${fund?"":a.fcf<0?"down":""}">${cell(a.fcf)}</td><td>${cell(a.de)}</td>
+      <td>${a.y?a.y.toFixed(1)+"%":"0%"}</td><td>${cell(a.po?a.po+"%":"0%")}</td><td>${m.beta}</td></tr>
+      ${a.news?`<tr><td colspan="11" class="newsline">↳ ${esc(a.news)}${a.divCut?' <span class="chip bad">dividend cut</span>':""}</td></tr>`:""}`}).join("");
+  return `<div class="tbl-wrap"><table><thead><tr><th>Asset</th><th>Price</th><th>Chg</th><th>P/E</th><th>Rev growth</th><th>Net margin</th><th>FCF $M</th><th>Debt/Eq</th><th>Yield</th><th>Payout</th><th>Beta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function portfolioPanel(st,r){
+  const wt=weights(st.cash,st.holdings,r),hs=Object.entries(st.holdings||{}).filter(([,h])=>h.sh>0);
+  const obl=S.market.hints&&roundOpen(st)?obligationsAt(st,r):[];
+  return `<section class="panel">
+    <div class="panel-h"><h3>Portfolio</h3><span class="mono" style="font-size:1.2rem;font-weight:600">${money(wt.V)}</span></div>
+    <div class="row mono" style="font-size:.85rem"><span>Cash ${money(st.cash)}</span><span>Bonds + cash ${wt.fixed.toFixed(1)}%</span><span class="${dirCls(wt.V-st.startCash)}">${pct((wt.V/st.startCash-1)*100)} total</span></div>
+    ${donut(st,r,wt)}
+    ${hs.length?`<div class="tbl-wrap"><table><thead><tr><th>Asset</th><th>Shares</th><th>Avg cost</th><th>Value</th><th>Weight</th><th>Gain</th></tr></thead><tbody>${hs.map(([t,h])=>{const a=dat(t,r);const g=(a.p/h.cost-1)*100;return `<tr class="click" data-act="pickAsset" data-k="${t}"><td><b>${t}</b></td><td>${h.sh}</td><td>${money2(h.cost)}</td><td>${money(h.sh*a.p)}</td><td>${(wt.w[t]||0).toFixed(1)}%</td><td class="${dirCls(g)}">${pct(g,0)}</td></tr>`}).join("")}</tbody></table></div>`:`<p class="muted">No holdings yet. Every buy needs a rule.</p>`}
+    ${obl.length?`<div class="stack">${obl.map(o=>`<div class="alert"><b>${o.id}</b> ${esc(o.why)}</div>`).join("")}</div>`:""}
+  </section>`;
+}
+function donut(st,r,wt){
+  const parts={Stocks:0,Bonds:0,"Money market":0,Cash:st.cash};
+  for(const[t,h]of Object.entries(st.holdings||{})){const m=meta(t),a=dat(t,r);if(!m||!a||!(h.sh>0))continue;const v=h.sh*a.p;parts[m.type==="stock"?"Stocks":m.type==="bond"?"Bonds":"Money market"]+=v;}
+  const col={Stocks:"#ef5b70",Bonds:"#6b8fbf","Money market":"#c9a34e",Cash:"#4a5768"};
+  const list=Object.keys(parts).filter(k=>parts[k]>0.5).map(k=>({k,p:parts[k]/wt.V*100}));
+  let acc=0;const grad="conic-gradient("+list.map(x=>{const s=acc;acc+=x.p;return `${col[x.k]} ${s.toFixed(2)}% ${Math.max(s,acc-0.6).toFixed(2)}%, #141e29 ${Math.max(s,acc-0.6).toFixed(2)}% ${acc.toFixed(2)}%`}).join(", ")+")";
+  return `<div class="donutwrap"><div class="donut" style="background:${grad}" role="img" aria-label="Portfolio mix"><div class="hole"><span>MIX</span></div></div><div class="mix">${list.map(x=>`<div><span class="sw" style="background:${col[x.k]}"></span>${x.k}<span class="num">${x.p.toFixed(1)}%</span></div>`).join("")}</div></div>`;
+}
+function ticketPanel(st,r){
+  const T=S.ui.ticket,a=T.t?dat(T.t,r):null,rules=THESES[st.thesis].rules(st.params);
+  const sh=Math.floor(+T.sh)||0;const h=st.holdings[T.t];
+  const maxBuy=a?Math.floor(st.cash/a.p):0;
+  return `<section class="panel">
+    <div class="panel-h"><h3>Trade ticket</h3><div class="seg"><button data-act="side" data-k="buy" aria-pressed="${T.side==="buy"}">Buy</button><button class="sell" data-act="side" data-k="sell" aria-pressed="${T.side==="sell"}">Sell</button></div></div>
+    <div class="row">
+      <label>Asset<select id="tk-t" data-bind="ticket.t"><option value="">Choose…</option>${Y().assets.map(m=>`<option value="${m.t}" ${T.t===m.t?"selected":""}>${m.t} · ${esc(m.name)}</option>`).join("")}</select></label>
+      <label>Shares<input type="number" id="tk-sh" min="1" step="1" data-bind="ticket.sh" value="${esc(T.sh)}"></label>
+    </div>
+    <div class="preview">${a?`${money2(a.p)} × ${sh} = ${money(sh*a.p)} · ${T.side==="buy"?`you can afford ${maxBuy}`:`you own ${h?h.sh:0}`}`:"Tap a row in the market to fill the ticket."}</div>
+    <label>Rule that justifies this trade<select id="tk-cite" data-bind="ticket.cite"><option value="">Choose a rule…</option>${rules.map(([id,k,txt])=>`<option value="${id}" ${T.cite===id?"selected":""}>${id} · ${esc(txt.length>70?txt.slice(0,68)+"…":txt)}</option>`).join("")}<option value="none" ${T.cite==="none"?"selected":""}>No rule applies (I'm deciding on my own)</option></select></label>
+    <label>Evidence: what in the data supports this?<textarea id="tk-ev" data-bind="ticket.evidence" placeholder="Brookline's yield is 3.6% and its payout ratio is 55%, so it meets B1 and B2.">${esc(T.evidence)}</textarea></label>
+    <div><div class="lab-s" style="margin-bottom:4px">Urge to act right now (1 calm · 5 can't sit still)</div><div class="emo">${[1,2,3,4,5].map(n=>`<button data-act="emo" data-k="${n}" aria-pressed="${T.emo===n}">${n}</button>`).join("")}</div></div>
+    <button class="btn primary" data-act="trade">Place ${T.side} order</button>
+  </section>`;
+}
+function codeEntry(){
+  return `<div class="row"><label style="flex:2 1 180px">Round code<input type="text" id="rcode" data-bind="code" value="${esc(S.ui.code||"")}" placeholder="e.g. HEDGE-42" autocomplete="off" style="font-family:var(--f-mono);text-transform:uppercase"></label><button class="btn primary" data-act="unlock" style="flex:0 0 auto">Open round</button></div>`;
+}
+function viewDesk(){
+  const st=S.me,r=curRound();
+  if(!st)return `<div class="empty">Choose and lock your thesis first. <button class="btn" data-act="view" data-k="thesis">Go to My Thesis</button></div>`;
+  if(r<1)return `<section class="panel" style="max-width:560px"><div><div class="eyebrow">The market is closed</div><h2>Enter the Round 1 code</h2></div><p class="muted">Your teacher will give you a code when the market opens. Review your charter while you wait.</p>${codeEntry()}</section>`;
+  const R=Y().rounds[r-1],locked=!roundOpen(st);
+  const myTrades=(st.trades||[]).filter(x=>x.r===r);
+  return `
+  <div class="tape"><span class="round">Round ${r} of ${nR()} · ${esc(R.title)}</span><span class="head">${esc(R.headline)}</span><span class="story">${esc(R.story)}</span></div>
+  ${macroStrip(r)}
+  ${R.temptation?`<div class="temptation"><span class="lab">Pressure check</span><span>${esc(R.temptation)}</span></div>`:""}
+  ${amendOpen(st)?`<div class="okline">A review window is open. You can amend your thesis on the My Thesis tab before you trade this round.</div>`:""}
+  <div class="grid2">
+    <div class="stack" style="gap:20px;min-width:0">
+      <section class="panel"><div class="panel-h"><h3>Market</h3><span class="muted" style="font-size:.85rem">Fund yields shown; stock data from latest filings</span></div>${marketTable(st,r)}</section>
+      ${myTrades.length?`<section class="panel"><h3>This round's tickets</h3>${myTrades.map(tr=>`<div class="item"><span class="stampcell"><span class="stamp ${locked||S.market.hints?"s-"+tr.verdict.v:"s-hidden"}">${locked||S.market.hints?tr.verdict.v:"sealed"}</span></span><div><b>${tr.side==="buy"?"Buy":"Sell"} ${tr.sh} ${tr.t}</b> <span class="chip">${esc(tr.cite)}</span><div class="muted" style="font-size:.85rem">${esc(tr.evidence)}</div></div><span class="sc mono">${money(tr.sh*tr.px)}</span></div>`).join("")}</section>`:""}
+    </div>
+    <div class="stack" style="gap:20px;min-width:0">
+      ${portfolioPanel(st,r)}
+      ${locked?`<section class="panel"><h3>Round ${r} locked</h3>${r>=nR()?`<p class="muted">That was the last round. Get your turn-in code on the Discipline Report.</p><button class="btn primary" data-act="view" data-k="report">Go to my report</button>`:`<p class="muted">Your verdicts are on the Discipline Report. Enter the next code when your teacher gives it out.</p>${codeEntry()}<button class="btn" data-act="view" data-k="report">See my verdicts</button>`}</section>`:ticketPanel(st,r)+`
+      <section class="panel">
+        <div><div class="eyebrow">End of round</div><h3>Journal and lock</h3></div>
+        <p class="muted" style="font-size:.9rem">Holding is a decision too. Explain what you did, what you chose not to do, and why. Locking reveals your verdicts and checks whether any of your sell or risk rules fired that you ignored.</p>
+        <textarea id="jr" data-bind="journal.text" placeholder="I held NOVA through the drop because revenue growth is still 35% (H1)...">${esc(S.ui.journal.text)}</textarea>
+        <div><div class="lab-s" style="margin-bottom:4px">How did this round feel? (1 calm · 5 stressed)</div><div class="emo">${[1,2,3,4,5].map(n=>`<button data-act="jemo" data-k="${n}" aria-pressed="${S.ui.journal.emo===n}">${n}</button>`).join("")}</div></div>
+        <button class="btn gold" data-act="lockRound">Lock Round ${r}</button>
+      </section>`}
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   RENDER: report
+   ============================================================ */
+function quadrant(score,ret,idx){
+  const disc=score!=null&&score>=80,won=ret>=idx;
+  const cells=[["Followed thesis",[["Skill","Good process, good result. Repeatable."],["Bad luck","Good process, bad result. Stay the course."]]],["Broke thesis",[["Got lucky","Bad process, good result. Dangerous habit."],["Earned it","Bad process, bad result. Learn from it."]]]];
+  return `<div class="quad"><span></span><span class="ax">Beat the index</span><span class="ax">Trailed the index</span>
+   ${cells.map(([ax,cs],i)=>`<span class="ax" style="writing-mode:vertical-rl;transform:rotate(180deg)">${ax}</span>${cs.map(([h,t],j)=>`<div class="c ${((i===0)===disc)&&((j===0)===won)?"on":""}"><b>${h}</b><div class="muted">${t}</div></div>`).join("")}`).join("")}</div>`;
+}
+function chartSvg(st){
+  const start=st.startRound||1,pts=[[start-1,st.startCash]];
+  Object.entries(st.locks||{}).map(([k,L])=>[+k.slice(1),L.value]).sort((a,b)=>a[0]-b[0]).forEach(p=>pts.push(p));
+  if(pts.length<2)return `<p class="muted">Your value line appears after you lock your first round.</p>`;
+  const last=pts[pts.length-1][0];
+  const idx=[];for(let r=start;r<=last;r++)idx.push([r,st.startCash*indexAt(r)/indexAt(start)]);idx.unshift([start-1,st.startCash]);
+  const all=pts.concat(idx).map(p=>p[1]);let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.12||1000;lo-=pad;hi+=pad;
+  const W=640,H=220,L=62,Rm=16,T=14,B=28;
+  const x=r=>L+(r-(start-1))/(Math.max(1,last-(start-1)))*(W-L-Rm),y=v=>T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  const path=a=>a.map((p,i)=>(i?"L":"M")+x(p[0]).toFixed(1)+","+y(p[1]).toFixed(1)).join("");
+  const ticks=[lo+pad,(lo+hi)/2,hi-pad];
+  return `<div class="tbl-wrap"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:420px;display:block" role="img" aria-label="Portfolio value by round compared with the market index">
+   ${ticks.map(v=>`<line x1="${L}" x2="${W-Rm}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${money(v)}</text>`).join("")}
+   ${pts.map(p=>`<text x="${x(p[0])}" y="${H-8}" text-anchor="middle">${p[0]===start-1?"Start":"R"+p[0]}</text>`).join("")}
+   <path d="${path(idx)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4"/>
+   <path d="${path(pts)}" fill="none" stroke="var(--link)" stroke-width="2.5"/>
+   ${pts.map(p=>`<circle cx="${x(p[0])}" cy="${y(p[1])}" r="3.5" fill="var(--link)"/>`).join("")}
+  </svg></div><div class="row muted" style="font-size:.8rem"><span><b style="color:var(--link)">━</b> Your portfolio</span><span>┅ Market index (equal-weight stocks)</span></div>`;
+}
+function auditList(st,teacher,sid){
+  const {items}=audit(st);if(!items.length)return `<p class="muted">Nothing graded yet. Place trades and lock a round.</p>`;
+  const byR={};items.forEach(i=>(byR[i.r]=byR[i.r]||[]).push(i));
+  return `<div class="audit">${Object.keys(byR).sort((a,b)=>a-b).map(r=>`<div class="audit-r"><div class="eyebrow">Round ${r} · ${esc((Y().rounds[r-1]||{}).title||"")}</div>
+   ${byR[r].map(i=>`<div class="item"><span class="stampcell"><span class="stamp s-${i.hidden&&!teacher?"hidden":i.v}">${i.hidden&&!teacher?"sealed":i.kind==="credit"?"credit":i.v}</span></span>
+     <div><b>${esc(i.label)}</b>${i.cite?` <span class="chip">cited ${esc(i.cite)}</span>`:""}${(i.tags||[]).map(t=>` <span class="chip ${/Panic|FOMO|Over|Missed/.test(t)?"bad":"gold"}">${esc(t)}</span>`).join("")}${i.emo?` <span class="chip">urge ${i.emo}/5</span>`:""}
+       ${i.hidden&&!teacher?`<div class="muted" style="font-size:.84rem">Verdict revealed when you lock Round ${r}.</div>`:`<ul>${(i.reasons||[]).map(x=>`<li>${esc(x)}</li>`).join("")}${i.evidence?`<li>Evidence: “${esc(i.evidence)}”</li>`:""}${i.journal&&teacher?`<li>Journal: “${esc(i.journal)}”</li>`:""}${i.memo&&teacher?`<li>Memo: “${esc(i.memo)}”</li>`:""}${i.over?`<li><b>Teacher adjusted</b> from ${i.auto} to ${i.score}${i.note?": "+esc(i.note):""}</li>`:""}</ul>`}
+       ${teacher&&!i.hidden?`<div class="row" style="margin-top:6px"><select id="ov-${sid}-${i.id}" data-act-change="override" data-sid="${sid}" data-item="${i.id}" style="flex:0 1 220px"><option value="">Auto score (${i.over?i.auto:i.score})</option>${[[100,"Consistent · 100"],[80,"Mostly · 80"],[60,"Partial · 60"],[30,"Weak · 30"],[0,"Violation · 0"]].map(([v,l])=>`<option value="${v}" ${i.over&&i.score===v?"selected":""}>${l}</option>`).join("")}</select></div>`:""}
+     </div><span class="sc">${i.hidden&&!teacher?"·":i.score}</span></div>`).join("")}</div>`).join("")}</div>`;
+}
+function reportText(st){
+  const a=audit(st),p=perf(st);
+  const lines=[`THESIS LAB REPORT · ${st.name}${st.period?" ("+st.period+")":""}`,`Thesis: ${THESES[st.thesis].name} (version ${(st.amendments||[]).length+1})`,`Discipline score: ${a.score==null?"n/a":a.score.toFixed(0)}`,`Return: ${pct(p.ret)} vs index ${pct(p.idxRet)} through Round ${p.r}`,``];
+  a.items.filter(i=>!i.hidden).forEach(i=>lines.push(`R${i.r} | ${i.v.toUpperCase()} ${i.score} | ${i.label}${i.cite?" | cited "+i.cite:""} | ${(i.reasons||[]).join("; ")}`));
+  return lines.join("\n");
+}
+function viewReport(){
+  const st=S.me;if(!st)return `<div class="empty">Lock a thesis to start your discipline record.</div>`;
+  const a=audit(st),p=perf(st);const items=a.items.filter(i=>!i.hidden);
+  const v=items.filter(i=>i.v==="violation").length,c=items.filter(i=>i.v==="consistent"||i.v==="credit").length;
+  const emos=(st.trades||[]).map(t=>t.emo);const hotV=(st.trades||[]).filter(t=>t.emo>=4&&(st.locks||{})["r"+t.r]);
+  const hotBad=hotV.filter(t=>t.verdict.v!=="consistent").length;
+  return `
+  <div class="score-row">
+    <div class="big lead"><span class="lab-s">Discipline score</span><span class="v">${a.score==null?"·":a.score.toFixed(0)}</span><span class="muted">your grade · ${items.length} graded items</span></div>
+    <div class="big"><span class="lab-s">Portfolio return</span><span class="v ${dirCls(p.ret)}">${pct(p.ret)}</span><span class="muted">${money(p.V)} now</span></div>
+    <div class="big"><span class="lab-s">Market index</span><span class="v ${dirCls(p.idxRet)}">${pct(p.idxRet)}</span><span class="muted">same period</span></div>
+    <div class="big"><span class="lab-s">Consistent / Violations</span><span class="v">${c} / ${v}</span><span class="muted">${hotV.length?`${hotBad} of ${hotV.length} high-urge trades broke a rule`:"no high-urge trades yet"}</span></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><h3>Value vs. the market</h3>${chartSvg(st)}</section>
+    <section class="panel"><h3>Process vs. outcome</h3>${quadrant(a.score,p.ret,p.idxRet)}<p class="muted" style="font-size:.85rem">Disciplined means a score of 80 or higher. Your grade is the score, not the return.</p></section>
+  </div>
+  <section class="panel" style="border:2px solid var(--accent)">
+    <div><div class="eyebrow">Turn in or move computers</div><h3>Your turn-in code</h3></div>
+    <p class="muted" style="font-size:.9rem">Your work is saved on this device only. Get a fresh code at the end of every class and submit it where your teacher asks. The same code lets you continue on another computer from the My Thesis tab.</p>
+    <div class="ctrl"><button class="btn primary" data-act="turnIn">Get my code</button><button class="btn" data-act="copyReport">Copy report as text</button></div>
+    ${S.ui.turnCode?`<textarea id="turncode" readonly style="min-height:90px;font-family:var(--f-mono);font-size:.75rem;word-break:break-all">${esc(S.ui.turnCode)}</textarea><span class="muted" style="font-size:.85rem">If copying didn't work, tap the box, select all, and copy.</span>`:""}
+  </section>
+  <section class="panel"><div class="panel-h"><h3>Trade-by-trade audit</h3></div>${auditList(st,false)}</section>`;
+}
+
+/* ============================================================
+   RENDER: teacher
+   ============================================================ */
+function viewTeacher(){
+  const M=S.market,n=nR();
+  const sub=S.ui.tsub||"class";const dirty=needsPublish();
+  return `
+  ${dirty?`<div class="temptation"><span class="lab">Not published</span><span style="flex:1">Students are still on the last published version. Publish to send them your current year and settings. Round codes change if you change the year name or code word.</span><button class="btn gold" data-act="publish" style="flex:0 0 auto">Publish to students</button></div>`:""}
+  <section class="panel">
+    <div class="panel-h"><div><div class="eyebrow">Round codes</div><h2>Open rounds with a code</h2></div><button class="btn" data-act="showCodes">${S.ui.showCodes?"Hide codes":"Show codes"}</button></div>
+    <p class="muted" style="font-size:.9rem">Write the code on the board when you want students to move to the next round. A student must lock the current round before a new code works.</p>
+    <div class="roundpips" style="gap:8px">${Array.from({length:n},(_,i)=>`<button class="btn" data-act="copyCode" data-k="${i+1}" title="Copy code" style="font-family:var(--f-mono);padding:6px 10px"><span class="muted">R${i+1}</span> ${S.ui.showCodes?esc(roundCode(i+1)):"•••••"}</button>`).join("")}</div>
+    <div class="row">
+      <label>Code word (change it to get new codes each semester)<input type="text" id="cw" data-act-change="codeWord" value="${esc(M.codeWord||"")}"></label>
+      <label>Review windows after rounds<input type="text" id="rev" data-act-change="review" value="${esc(M.reviewAfter.join(", "))}"></label>
+      <label>Starting cash<input type="number" id="cash0" data-act-change="cash" value="${M.startCash}"></label>
+    </div>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="hints" data-act-change="hints" ${M.hints?"checked":""}> Coaching mode: show rule hints and instant verdicts</label>
+  </section>
+  <div class="rtabs"><button data-act="tsub" data-k="class" aria-pressed="${sub==="class"}">Gradebook</button><button data-act="tsub" data-k="year" aria-pressed="${sub==="year"}">Year builder</button></div>
+  ${sub==="class"?viewGradebook():viewYearBuilder()}`;
+}
+function viewGradebook(){
+  const list=S.students.slice().sort((a,b)=>(a.period||"").localeCompare(b.period||"")||(a.name||"").localeCompare(b.name||""));
+  const imp=`<section class="panel"><div><div class="eyebrow">Collect work</div><h3>Import turn-in codes</h3></div>
+    <p class="muted" style="font-size:.9rem">Paste any number of codes, one per line (for example, a column copied from your Google Form responses). A newer code from the same student replaces the older one and keeps your overrides.</p>
+    <textarea id="imp" data-bind="imp" placeholder="TL1Z.…" style="font-family:var(--f-mono);font-size:.75rem">${esc(S.ui.imp||"")}</textarea>
+    <div><button class="btn primary" data-act="importCodes">Import codes</button></div></section>`;
+  if(!list.length)return imp+`<div class="empty">No students yet. Imported codes appear here as a gradebook.</div>`;
+  const sel=S.ui.tSel&&list.find(s=>s._id===S.ui.tSel);
+  return imp+`<section class="panel"><div class="panel-h"><h3>Gradebook</h3><span class="muted">${list.length} student${list.length>1?"s":""} · click a row for the full audit</span></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Student</th><th class="l">Period</th><th class="l">Thesis</th><th>Rounds</th><th>Discipline</th><th>Return</th><th>vs Index</th><th>Violations</th><th class="l">Quadrant</th></tr></thead><tbody>
+   ${list.map(st=>{if(!st.thesis)return"";const a=audit(st),p=perf(st);const v=a.items.filter(i=>i.v==="violation").length;const disc=a.score!=null&&a.score>=80,won=p.ret>=p.idxRet;const q=disc?(won?"Skill":"Bad luck"):(won?"Got lucky":"Earned it");
+     const warn=st.sigOk===false?' <span class="chip bad">code edited</span>':(st.codeYear&&st.codeYear!==Y().name?' <span class="chip gold">other year</span>':"");
+     return `<tr class="click${S.ui.tSel===st._id?" sel":""}" data-act="tsel" data-k="${esc(st._id)}"><td class="l" style="font-family:var(--f-body)"><b>${esc(st.name)}</b>${warn}${st.importedAt?`<small class="muted" style="display:block;font-size:.75rem">turned in ${new Date(st.importedAt).toLocaleDateString()}</small>`:""}</td><td class="l">${esc(st.period||"")}</td><td class="l" style="font-family:var(--f-body)"><span class="sw" style="background:${THESES[st.thesis].color}"></span>${THESES[st.thesis].name}</td><td>${Object.keys(st.locks||{}).length}</td><td style="font-weight:600">${a.score==null?"·":a.score.toFixed(0)}</td><td class="${dirCls(p.ret)}">${pct(p.ret)}</td><td class="${dirCls(p.ret-p.idxRet)}">${pct(p.ret-p.idxRet)}</td><td>${v}</td><td class="l"><span class="chip ${q==="Got lucky"||q==="Earned it"?"bad":"good"}">${q}</span></td></tr>`}).join("")}
+   </tbody></table></div></section>
+   ${sel?`<section class="panel"><div class="panel-h"><div><div class="eyebrow">${THESES[sel.thesis].name} · Version ${(sel.amendments||[]).length+1}</div><h2>${esc(sel.name)}</h2></div><div class="ctrl"><button class="btn" data-act="copyStudent" data-k="${esc(sel._id)}">Copy report</button>${S.ui.confirm==="del:"+sel._id?`<span class="confirm">Remove ${esc(sel.name)} and your overrides? They can turn in a new code later. <button class="btn danger" data-act="delStudent" data-k="${esc(sel._id)}">Remove</button><button class="btn" data-act="cancel">Keep</button></span>`:`<button class="btn danger" data-act="askDel" data-k="${esc(sel._id)}">Remove from gradebook</button>`}</div></div>
+     <blockquote style="margin:0;border-left:3px solid var(--gold);padding-left:12px">${esc(sel.philosophy)}</blockquote>
+     <p class="muted"><b>Would prove me wrong:</b> ${esc(sel.falsifier)}</p>
+     ${rulesList(sel.thesis,sel.params)}
+     <div class="hr"></div>${auditList(sel,true,sel._id)}</section>`:""}`;
+}
+function viewYearBuilder(){
+  if(!S.ui.yearDraft)S.ui.yearDraft=clone(Y());
+  const Yd=S.ui.yearDraft,ri=Math.min(S.ui.yr,Yd.rounds.length),R=Yd.rounds[ri-1];
+  const flds=[["p","Price"],["pe","P/E"],["g","Rev gr %"],["m","Margin %"],["fcf","FCF $M"],["de","D/E"],["y","Yield %"],["po","Payout %"]];
+  return `<section class="panel">
+   <div class="panel-h"><div><div class="eyebrow">Year builder</div><h2>Edit the fictitious year</h2></div><div class="ctrl"><button class="btn primary" data-act="saveYear">Save year</button>${S.ui.confirm==="sample"?`<span class="confirm">Replace your edits with the sample year? <button class="btn danger" data-act="loadSample">Replace</button><button class="btn" data-act="cancel">Keep mine</button></span>`:`<button class="btn" data-act="askSample">Load sample year</button>`}</div></div>
+   <p class="muted" style="font-size:.9rem">Edits stay in this draft until you save. Saved changes reach students only after you publish. Change rounds students have already played with care: trades already judged keep their verdicts. Leave P/E blank for a company that is losing money.</p>
+   <label style="max-width:420px">Year name<input type="text" id="yn" data-ybind="name" value="${esc(Yd.name)}"></label>
+   <h3>Assets</h3>
+   <div class="tbl-wrap edit-grid"><table><thead><tr><th>Ticker</th><th class="l">Name</th><th class="l">Sector</th><th class="l">Type</th><th>Beta</th><th></th></tr></thead><tbody>
+    ${Yd.assets.map((a,i)=>`<tr><td><input type="text" id="as-t-${i}" data-ybind="assets.${i}.t" value="${esc(a.t)}"></td><td class="l"><input class="wide" type="text" id="as-n-${i}" data-ybind="assets.${i}.name" value="${esc(a.name)}"></td><td class="l"><input class="wide" type="text" id="as-s-${i}" data-ybind="assets.${i}.sector" value="${esc(a.sector)}" list="sectors"></td><td class="l"><select id="as-ty-${i}" data-ybind="assets.${i}.type">${["stock","bond","mm"].map(t=>`<option value="${t}" ${a.type===t?"selected":""}>${t==="mm"?"money market":t}</option>`).join("")}</select></td><td><input type="number" step="any" id="as-b-${i}" data-ybind="assets.${i}.beta" data-num="1" value="${a.beta}"></td><td><button class="btn danger" data-act="rmAsset" data-k="${i}" style="padding:4px 8px">Remove</button></td></tr>`).join("")}
+   </tbody></table></div>
+   <datalist id="sectors">${[...new Set(TIGHT.concat(EASE,["Communication"]))].map(s=>`<option value="${s}">`).join("")}</datalist>
+   <div><button class="btn" data-act="addAsset">Add asset</button></div>
+   <div class="hr"></div>
+   <div class="panel-h"><h3>Rounds</h3><div class="rtabs">${Yd.rounds.map((_,i)=>`<button data-act="yr" data-k="${i+1}" aria-pressed="${ri===i+1}">R${i+1}</button>`).join("")}<button data-act="addRound">+ Round</button>${Yd.rounds.length>1?`<button data-act="rmRound">− Last</button>`:""}</div></div>
+   <div class="row"><label>Title<input type="text" id="r-title-${ri}" data-ybind="rounds.${ri-1}.title" value="${esc(R.title)}"></label><label>Headline<input type="text" id="r-head-${ri}" data-ybind="rounds.${ri-1}.headline" value="${esc(R.headline)}"></label></div>
+   <label>Story<textarea id="r-story-${ri}" data-ybind="rounds.${ri-1}.story">${esc(R.story)}</textarea></label>
+   <label>Pressure check (temptation card)<textarea id="r-temp-${ri}" data-ybind="rounds.${ri-1}.temptation">${esc(R.temptation)}</textarea></label>
+   <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="r-panic-${ri}" data-ybind="rounds.${ri-1}.panic" data-bool="1" ${R.panic?"checked":""}> Panic round (any sale of a falling stock without a sell rule counts as a panic sell)</label>
+   <div class="row">${[["fed","Fed rate %"],["cpi","CPI %"],["gdp","GDP %"],["unemp","Unemployment %"],["oil","Oil $"]].map(([k,l])=>`<label>${l}<input type="number" step="any" id="r-${k}-${ri}" data-ybind="rounds.${ri-1}.macro.${k}" data-num="1" value="${R.macro[k]}"></label>`).join("")}</div>
+   <div class="tbl-wrap edit-grid"><table><thead><tr><th>Asset</th>${flds.map(([,l])=>`<th>${l}</th>`).join("")}<th>Div cut</th><th class="l">News</th></tr></thead><tbody>
+    ${Yd.assets.map(a=>{const d=R.data[a.t]||(R.data[a.t]={p:10,y:0});return `<tr><td><b>${esc(a.t)}</b></td>${flds.map(([k])=>`<td><input type="number" step="any" id="c-${ri}-${a.t}-${k}" data-ybind="rounds.${ri-1}.data.${a.t}.${k}" data-num="1" value="${d[k]==null?"":d[k]}"></td>`).join("")}<td><input type="checkbox" id="c-${ri}-${a.t}-dc" data-ybind="rounds.${ri-1}.data.${a.t}.divCut" data-bool="1" ${d.divCut?"checked":""}></td><td class="l"><input class="wide" type="text" id="c-${ri}-${a.t}-n" data-ybind="rounds.${ri-1}.data.${a.t}.news" value="${esc(d.news||"")}"></td></tr>`}).join("")}
+   </tbody></table></div>
+   <div class="hr"></div>
+   <h3>Save or share a year</h3>
+   <p class="muted" style="font-size:.9rem">Copy the year as text to reuse next semester or share with a colleague. Paste a year here and import it into the draft.</p>
+   <textarea id="io" data-bind="io" style="min-height:110px;font-family:var(--f-mono);font-size:.8rem">${esc(S.ui.io)}</textarea>
+   <div class="ctrl"><button class="btn" data-act="exportYear">Copy year as text</button><button class="btn" data-act="importYear">Import into draft</button></div>
+  </section>`;
+}
+
+/* ============================================================
+   RENDER root
+   ============================================================ */
+function render(){
+  if(!S.ready)return;
+  if(S.view==="teacher"&&!S.isTeacher)S.view="thesis";
+  const ae=document.activeElement,fid=ae&&ae.id,ss=ae&&ae.selectionStart,se=ae&&ae.selectionEnd,sy=window.scrollY;
+  renderMast();
+  const v=S.view==="desk"?viewDesk():S.view==="report"?viewReport():S.view==="teacher"?viewTeacher():viewThesis();
+  $("#app").innerHTML=v;
+  if(fid){const el=document.getElementById(fid);if(el){el.focus({preventScroll:true});try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
+  window.scrollTo(0,sy);
+}
+function setPath(obj,path,val){const ks=path.split(".");let o=obj;for(let i=0;i<ks.length-1;i++){if(o[ks[i]]==null)o[ks[i]]={};o=o[ks[i]];}o[ks[ks.length-1]]=val;}
+function getPath(obj,path){return path.split(".").reduce((o,k)=>o==null?o:o[k],obj);}
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);toast("Copied.");}
+  catch(e){S.ui.io=txt;S.ui.tsub="year";if(S.view!=="teacher"){const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Copied.")}catch(_){toast("Select the text and copy it manually.")}ta.remove();}else{render();toast("Copy blocked. The text is in the box below; select and copy it.");}}
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+document.addEventListener("input",e=>{
+  const el=e.target;
+  if(el.dataset.bind){setPath(S.ui,el.dataset.bind,el.value);
+    if(el.dataset.bind==="ticket.sh"||el.dataset.bind==="amend.memo"){render();}}
+  if(el.dataset.ybind&&S.ui.yearDraft){let v=el.dataset.bool?el.checked:el.value;if(el.dataset.num)v=el.value===""?null:+el.value;setPath(S.ui.yearDraft,el.dataset.ybind,v);}
+});
+document.addEventListener("change",async e=>{
+  const el=e.target;
+  if(el.dataset.bind==="ticket.t"){S.ui.ticket.t=el.value;render();}
+  if(el.dataset.ybind&&S.ui.yearDraft&&(el.dataset.bool||el.tagName==="SELECT"||/assets\.\d+\.t$/.test(el.dataset.ybind))){
+    let v=el.dataset.bool?el.checked:el.value;
+    if(/assets\.(\d+)\.t$/.test(el.dataset.ybind)){ // rename ticker across rounds
+      const i=+el.dataset.ybind.split(".")[1];const old=S.ui.yearDraft._oldT&&S.ui.yearDraft._oldT[i];
+      const nv=String(v).toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);S.ui.yearDraft.assets[i].t=nv;
+      S.ui.yearDraft.rounds.forEach(R=>{const keys=Object.keys(R.data);const prev=old||keys.find(k=>!S.ui.yearDraft.assets.some(a=>a.t===k));if(prev&&prev!==nv&&R.data[prev]){R.data[nv]=R.data[prev];delete R.data[prev];}});
+      delete S.ui.yearDraft._oldT;render();return;
+    }
+    setPath(S.ui.yearDraft,el.dataset.ybind,v);
+  }
+  const ac=el.dataset.actChange;if(!ac)return;
+  if(ac==="hints")await saveMarket({hints:el.checked});
+  if(ac==="codeWord")await saveMarket({codeWord:el.value.trim()});
+  if(ac==="review"){const arr=el.value.split(/[,\s]+/).map(Number).filter(x=>x>0&&x<nR());await saveMarket({reviewAfter:[...new Set(arr)].sort((a,b)=>a-b)});}
+  if(ac==="cash"){const v=Math.max(1000,Math.round(+el.value||100000));await saveMarket({startCash:v});}
+  if(ac==="override"){const v=el.value;await saveOverride(el.dataset.sid,el.dataset.item,v===""?null:{score:+v,note:""});}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="rcode"){e.preventDefault();unlockRound();}});
+document.addEventListener("focusin",e=>{const el=e.target;const m=el.dataset&&el.dataset.ybind&&el.dataset.ybind.match(/^assets\.(\d+)\.t$/);if(m&&S.ui.yearDraft){S.ui.yearDraft._oldT=S.ui.yearDraft._oldT||{};S.ui.yearDraft._oldT[+m[1]]=el.value;}});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]");if(!b||b.tagName==="SELECT")return;
+  const act=b.dataset.act,k=b.dataset.k;
+  switch(act){
+    case"view":S.view=k;S.ui.confirm=null;render();window.scrollTo(0,0);break;
+    case"quiz":S.ui.quiz[b.dataset.i]=k;render();break;
+    case"pick":S.ui.pick=k;if(!S.ui.draft.philosophy)S.ui.draft.philosophy="";render();break;
+    case"lockThesis":await lockThesis();break;
+    case"restartThesis":{const st=S.me;if(st&&!(st.trades||[]).length){S.ui.pick=st.thesis;{const pr=String(st.name||"").split(" ");S.ui.draft={name:pr[0]||"",initial:(pr[1]||"").replace(/\W/g,""),period:st.period,philosophy:st.philosophy,falsifier:st.falsifier};}S.me=null;try{localStorage.removeItem("tl.me")}catch(_){}render();}break;}
+    case"unlock":await unlockRound();break;
+    case"turnIn":await turnIn();break;
+    case"restore":await restoreFromCode();break;
+    case"importCodes":await importCodes(S.ui.imp);break;
+    case"publish":await publishToStudents();break;
+    case"showCodes":S.ui.showCodes=!S.ui.showCodes;render();break;
+    case"copyCode":await copyText(roundCode(+k));break;
+    case"pickAsset":S.ui.ticket.t=k;if(S.view!=="desk"){S.view="desk";}render();{const el=document.getElementById("tk-sh");if(el)el.focus();}break;
+    case"side":S.ui.ticket.side=k;render();break;
+    case"emo":S.ui.ticket.emo=+k;render();break;
+    case"jemo":S.ui.journal.emo=+k;render();break;
+    case"trade":await placeTrade();break;
+    case"lockRound":await lockRound();break;
+    case"amend":await submitAmend();break;
+    case"copyReport":await copyText(reportText(S.me));break;
+    case"copyStudent":{const st=S.students.find(x=>x._id===k);if(st)await copyText(reportText(st));break;}
+    case"tsub":S.ui.tsub=k;S.ui.confirm=null;render();break;
+    case"tsel":S.ui.tSel=S.ui.tSel===k?null:k;S.ui.confirm=null;render();break;
+    case"askDel":S.ui.confirm="del:"+k;render();break;
+    case"delStudent":S.ui.confirm=null;S.ui.tSel=null;await deleteStudent(k);render();break;
+    case"cancel":S.ui.confirm=null;render();break;
+    case"askSample":S.ui.confirm="sample";render();break;
+    case"loadSample":S.ui.yearDraft=sampleYear();S.ui.yr=1;S.ui.confirm=null;render();toast("Sample year loaded into the draft. Save to apply it.");break;
+    case"yr":S.ui.yr=+k;render();break;
+    case"addRound":{const Yd=S.ui.yearDraft,last=Yd.rounds[Yd.rounds.length-1];Yd.rounds.push(Object.assign(clone(last),{title:"New round",headline:"Headline goes here",story:"",temptation:"",panic:false}));Object.values(Yd.rounds[Yd.rounds.length-1].data).forEach(d=>delete d.news);S.ui.yr=Yd.rounds.length;render();break;}
+    case"rmRound":{const Yd=S.ui.yearDraft;if(Yd.rounds.length>1){Yd.rounds.pop();S.ui.yr=Math.min(S.ui.yr,Yd.rounds.length);render();}break;}
+    case"addAsset":{const Yd=S.ui.yearDraft;let t="NEW",n=1;while(Yd.assets.some(a=>a.t===t))t="NEW"+(++n);Yd.assets.push({t,name:"New Company",sector:"Technology",type:"stock",beta:1});Yd.rounds.forEach(R=>R.data[t]={p:50,pe:15,g:5,m:8,fcf:50,de:.8,y:0,po:0});render();break;}
+    case"rmAsset":{const Yd=S.ui.yearDraft,i=+k,t=Yd.assets[i].t;Yd.assets.splice(i,1);Yd.rounds.forEach(R=>delete R.data[t]);render();break;}
+    case"saveYear":{const Yd=clone(S.ui.yearDraft);delete Yd._oldT;const tk=Yd.assets.map(a=>a.t);if(new Set(tk).size!==tk.length||tk.some(t=>!t))return toast("Every asset needs a unique ticker.");
+      const rv=S.market.reviewAfter.filter(x=>x<Yd.rounds.length);
+      if(await saveMarket({year:Yd,reviewAfter:rv}))toast("Year saved. Publish to students when you're ready.");break;}
+    case"exportYear":{const txt=JSON.stringify(S.ui.yearDraft||Y());S.ui.io=txt;render();await copyText(txt);break;}
+    case"importYear":{try{const y=JSON.parse(S.ui.io);if(!y||!Array.isArray(y.assets)||!Array.isArray(y.rounds)||!y.rounds.length)throw 0;y.rounds.forEach(R=>{R.macro=Object.assign({fed:0,cpi:0,gdp:0,unemp:0,oil:0},R.macro||{});R.data=R.data||{};});S.ui.yearDraft=y;S.ui.yr=1;render();toast("Imported into the draft. Review it, then save.");}catch(_){toast("That text is not a Thesis Lab year. Copy a year from this page and paste it again.");}break;}
+  }
+});
+
+initStore();
+setTimeout(()=>{if(!S.ready){S.ready=true;render();}},12000);
+})();
+</script>
+
+</body>
+</html>
